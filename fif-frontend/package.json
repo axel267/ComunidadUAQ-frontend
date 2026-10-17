@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@copilotkit/react-core": "^1.79.1",
+    "@copilotkit/react-ui": "^1.79.1",
+    "@copilotkit/runtime": "^1.79.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "next": "16.3.4",
     "react": "19.2.8",
