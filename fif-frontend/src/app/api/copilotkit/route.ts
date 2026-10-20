@@ -6,8 +6,11 @@ import {
 import { NextRequest } from "next/server";
 
 const serviceAdapter = new GoogleGenerativeAIAdapter({
-  apiKey: process.env.GEMINI_API_KEY,
-  model: "gemma-4-31b-it",
+  apiKey:
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY,
+  model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
 });
 
 const runtime = new CopilotRuntime();
