@@ -4,8 +4,11 @@ import React from "react";
 import { CopilotKit, useCopilotAction } from "@copilotkit/react-core";
 import { CopilotPopup } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { getFacultades } from "../services/api";
+
+// El widget no se muestra en las pantallas de autenticación: no forman parte del diseño de Stitch para ese flujo.
+const AUTH_ROUTES = ["/login", "/activar-cuenta"];
 
 function CopilotGlobalActions() {
   const router = useRouter();
@@ -91,10 +94,14 @@ function CopilotGlobalActions() {
 }
 
 export function CopilotChatbot({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const hideWidget = AUTH_ROUTES.some((route) => pathname?.startsWith(route));
+
   return (
     <CopilotKit runtimeUrl="/api/copilotkit">
       <CopilotGlobalActions />
       {children}
+      {!hideWidget && (
       <CopilotPopup
         instructions={`Eres el asistente virtual oficial de 'Comunidad UAQ' (Universidad Autónoma de Querétaro).
 Tus responsabilidades principales son:
@@ -110,6 +117,7 @@ Tus responsabilidades principales son:
         defaultOpen={false}
         clickOutsideToClose={true}
       />
+      )}
     </CopilotKit>
   );
 }
