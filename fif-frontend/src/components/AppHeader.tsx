@@ -4,10 +4,11 @@ import { Bell, GraduationCap, User } from "lucide-react";
 
 interface AppHeaderProps {
   subtitle: string;
+  notificacionesSinLeer?: number;
   onNotificationsClick?: () => void;
 }
 
-export function AppHeader({ subtitle, onNotificationsClick }: AppHeaderProps) {
+export function AppHeader({ subtitle, notificacionesSinLeer = 0, onNotificationsClick }: AppHeaderProps) {
   return (
     <header className="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="h-16 px-space-md flex items-center justify-between">
@@ -22,11 +23,21 @@ export function AppHeader({ subtitle, onNotificationsClick }: AppHeaderProps) {
         </div>
         <div className="flex items-center gap-space-xs">
           <button
-            aria-label="Notificaciones"
+            aria-label={
+              notificacionesSinLeer > 0 ? `Notificaciones, ${notificacionesSinLeer} sin leer` : "Notificaciones"
+            }
             onClick={onNotificationsClick}
-            className="w-touch-target-min h-touch-target-min flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full"
+            className="relative w-touch-target-min h-touch-target-min flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full"
           >
             <Bell className="w-6 h-6" />
+            {notificacionesSinLeer > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-on-error text-[10px] font-bold leading-none flex items-center justify-center ring-2 ring-surface-container-lowest"
+              >
+                {notificacionesSinLeer > 9 ? "9+" : notificacionesSinLeer}
+              </span>
+            )}
           </button>
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant">
             <User className="w-[18px] h-[18px]" />

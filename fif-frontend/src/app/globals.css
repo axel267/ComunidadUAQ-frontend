@@ -151,3 +151,57 @@ body {
   z-index: 9999 !important;
 }
 
+/* Bottom-sheet de Crear Publicación */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes notif-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-panel {
+  animation: sheet-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notif-panel {
+  animation: notif-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-backdrop {
+  animation: sheet-fade 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel,
+  .notif-panel,
+  .sheet-backdrop {
+    animation: none;
+  }
+}
+
+/* La burbuja del chatbot no debe tapar el botón Publicar mientras el sheet está abierto */
+body:has([data-sheet-open]) .copilotKitButton,
+body:has([data-sheet-open]) .copilotKitPopup {
+  display: none !important;
+}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { Toast } from "@/components/Toast";
@@ -10,11 +10,26 @@ import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { AvisoCard } from "@/components/home/AvisoCard";
 import { UpcomingDates } from "@/components/home/UpcomingDates";
 import { TelegramBanner } from "@/components/home/TelegramBanner";
+import { CrearPublicacionSheet } from "@/components/publicar/CrearPublicacionSheet";
+import { NotificacionesPanel } from "@/components/notificaciones/NotificacionesPanel";
+import { useNotificaciones } from "@/hooks/useNotificaciones";
 import { AVISOS_MOCK, type CategoriaAviso } from "@/data/avisos";
 
 export default function HomePage() {
   const { message, showToast } = useToast();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
+  const [publicando, setPublicando] = useState(false);
+  const [verNotificaciones, setVerNotificaciones] = useState(false);
+  const { notificaciones, sinLeer, marcarLeida, marcarTodasLeidas, descartar } = useNotificaciones();
+
+  const cerrarNotificaciones = useCallback(() => setVerNotificaciones(false), []);
+
+  const cerrarPublicar = useCallback(() => setPublicando(false), []);
+  const handlePublicar = useCallback(() => {
+    // TODO: recibir `NuevaPublicacion` y enviarla a la API cuando el backend defina el contrato (RF04).
+    setPublicando(false);
+    showToast("¡Publicación creada!");
+  }, [showToast]);
 
   const avisosFiltrados = useMemo(
     () => (categoria === "all" ? AVISOS_MOCK : AVISOS_MOCK.filter((a) => a.categoria === categoria)),
@@ -23,7 +38,11 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col relative w-full min-h-screen bg-surface">
-      <AppHeader subtitle="Anuncios" onNotificationsClick={() => showToast("No tienes notificaciones nuevas.")} />
+      <AppHeader
+        subtitle="Anuncios"
+        notificacionesSinLeer={sinLeer}
+        onNotificationsClick={() => setVerNotificaciones(true)}
+      />
 
       <main className="flex flex-col w-full pt-20 pb-24 px-screen-margin-mobile gap-space-lg">
         <HeroAnnouncement onConsultarClick={() => showToast("Abriendo Convocatoria Oficial...")} />
@@ -47,7 +66,20 @@ export default function HomePage() {
       </main>
 
       <Toast message={message} />
-      <AppBottomNav onPublishClick={() => showToast("Crear nueva publicación...")} />
+      <AppBottomNav onPublishClick={() => setPublicando(true)} />
+
+      {publicando && <CrearPublicacionSheet onClose={cerrarPublicar} onSubmit={handlePublicar} />}
+
+      {verNotificaciones && (
+        <NotificacionesPanel
+          notificaciones={notificaciones}
+          sinLeer={sinLeer}
+          onMarcarLeida={marcarLeida}
+          onMarcarTodasLeidas={marcarTodasLeidas}
+          onDescartar={descartar}
+          onClose={cerrarNotificaciones}
+        />
+      )}
     </div>
   );
 }
