@@ -62,3 +62,34 @@ export interface NuevaPublicacion {
   visibilidad: VisibilidadPublicacion;
   adjunto?: AdjuntoPublicacion;
 }
+
+// Publicación ya creada por el usuario (hasta que exista persistencia real vive solo en memoria).
+export interface Publicacion extends NuevaPublicacion {
+  id: string;
+  autor: AutorPublicacion;
+  creadaEn: number;
+  editadaEn?: number;
+}
+
+export function etiquetaTema(id: TemaPublicacion) {
+  return TEMAS.find((t) => t.id === id)?.label ?? id;
+}
+
+export function etiquetaVisibilidad(id: VisibilidadPublicacion) {
+  return VISIBILIDADES.find((v) => v.id === id)?.label ?? id;
+}
+
+export function formatearTiempoRelativo(marca: number, ahora = Date.now()) {
+  const minutos = Math.floor((ahora - marca) / 60_000);
+  if (minutos < 1) return "Hace un momento";
+  if (minutos < 60) return `Hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `Hace ${horas} h`;
+  return new Date(marca).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+}
+
+export function formatearFechaEvento(fechaHora: string) {
+  const fecha = new Date(fechaHora);
+  if (Number.isNaN(fecha.getTime())) return fechaHora;
+  return fecha.toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" });
+}

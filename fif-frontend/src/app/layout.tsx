@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { CopilotChatbot } from "@/components/CopilotChatbot";
+import { AppProviders } from "@/context/AppProviders";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${plusJakartaSans.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <CopilotChatbot>{children}</CopilotChatbot>
+        <CopilotChatbot>
+          <AppProviders>{children}</AppProviders>
+        </CopilotChatbot>
       </body>
     </html>
   );

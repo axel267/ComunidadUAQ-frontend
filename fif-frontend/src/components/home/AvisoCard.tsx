@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { BadgeCheck, Bookmark, Download, ImageIcon, Paperclip, Share2 } from "lucide-react";
+import { useGuardados } from "@/context/GuardadosContext";
 import type { Aviso } from "@/data/avisos";
 
 interface AvisoCardProps {
@@ -10,7 +10,8 @@ interface AvisoCardProps {
 }
 
 export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
-  const [guardado, setGuardado] = useState(false);
+  const { estaGuardado, alternar } = useGuardados();
+  const guardado = estaGuardado(aviso.id);
   const Icono = aviso.icono;
 
   const handleShare = async () => {
@@ -36,10 +37,8 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
   };
 
   const handleBookmark = () => {
-    setGuardado((prev) => {
-      onToast(prev ? "Aviso removido de guardados" : "Aviso guardado");
-      return !prev;
-    });
+    const quedaGuardado = alternar(aviso.id);
+    onToast(quedaGuardado ? "Aviso guardado" : "Aviso removido de guardados");
   };
 
   return (
@@ -100,7 +99,8 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
             <Share2 className="w-5 h-5" />
           </button>
           <button
-            aria-label="Guardar"
+            aria-label={guardado ? "Quitar de guardados" : "Guardar"}
+            aria-pressed={guardado}
             onClick={handleBookmark}
             className="w-touch-target-min h-touch-target-min flex items-center justify-center text-secondary hover:text-primary rounded-full transition-colors"
           >

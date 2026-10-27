@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CalendarDays,
   ChartColumn,
@@ -36,13 +36,17 @@ import {
   type AutorPublicacion,
   type DuracionEncuesta,
   type NuevaPublicacion,
+  type Publicacion,
   type TemaPublicacion,
   type TipoAdjunto,
   type VisibilidadPublicacion,
 } from "@/data/publicaciones";
+import { useObjectUrl } from "@/hooks/useObjectUrl";
 
 interface CrearPublicacionSheetProps {
   autor?: AutorPublicacion;
+  /** Si se envía, el sheet funciona como editor de esa publicación. */
+  publicacion?: Publicacion;
   onClose: () => void;
   onSubmit: (publicacion: NuevaPublicacion) => void;
 }
@@ -69,15 +73,6 @@ function esUrlValida(valor: string) {
   }
 }
 
-function useObjectUrl(archivo?: File) {
-  const url = useMemo(() => (archivo ? URL.createObjectURL(archivo) : null), [archivo]);
-  useEffect(() => {
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [url]);
-  return url;
-}
 
 const inputBase =
   "w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all";
@@ -543,26 +538,34 @@ function PanelEvento({
   );
 }
 
-export function CrearPublicacionSheet({ autor = AUTOR_MOCK, onClose, onSubmit }: CrearPublicacionSheetProps) {
+export function CrearPublicacionSheet({
+  autor: autorProp = AUTOR_MOCK,
+  publicacion,
+  onClose,
+  onSubmit,
+}: CrearPublicacionSheetProps) {
   const tituloId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editando = !!publicacion;
+  const autor = publicacion?.autor ?? autorProp;
+  const adjuntoInicial = publicacion?.adjunto;
 
-  const [texto, setTexto] = useState("");
-  const [tema, setTema] = useState<TemaPublicacion>("hub");
-  const [visibilidad, setVisibilidad] = useState<VisibilidadPublicacion>("facultad");
-  const [tab, setTab] = useState<TipoAdjunto | null>(null);
+  const [texto, setTexto] = useState(publicacion?.texto ?? "");
+  const [tema, setTema] = useState<TemaPublicacion>(publicacion?.tema ?? "hub");
+  const [visibilidad, setVisibilidad] = useState<VisibilidadPublicacion>(publicacion?.visibilidad ?? "facultad");
+  const [tab, setTab] = useState<TipoAdjunto | null>(adjuntoInicial?.tipo ?? null);
   const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
 
-  const [imagen, setImagen] = useState<File>();
-  const [video, setVideo] = useState<File>();
-  const [enlaceVideo, setEnlaceVideo] = useState("");
-  const [documento, setDocumento] = useState<File>();
-  const [pregunta, setPregunta] = useState("");
-  const [opciones, setOpciones] = useState<string[]>(["", ""]);
-  const [duracion, setDuracion] = useState<DuracionEncuesta>("3d");
-  const [tituloEvento, setTituloEvento] = useState("");
-  const [fechaEvento, setFechaEvento] = useState("");
-  const [lugarEvento, setLugarEvento] = useState("");
+  const [imagen, setImagen] = useState<File | undefined>(() => (adjuntoInicial?.tipo === "imagen" ? adjuntoInicial.archivo : undefined));
+  const [video, setVideo] = useState<File | undefined>(() => (adjuntoInicial?.tipo === "video" ? adjuntoInicial.archivo : undefined));
+  const [enlaceVideo, setEnlaceVideo] = useState(() => (adjuntoInicial?.tipo === "video" ? (adjuntoInicial.enlace ?? "") : ""));
+  const [documento, setDocumento] = useState<File | undefined>(() => (adjuntoInicial?.tipo === "documento" ? adjuntoInicial.archivo : undefined));
+  const [pregunta, setPregunta] = useState(() => (adjuntoInicial?.tipo === "encuesta" ? adjuntoInicial.pregunta : ""));
+  const [opciones, setOpciones] = useState<string[]>(() => (adjuntoInicial?.tipo === "encuesta" ? adjuntoInicial.opciones : ["", ""]));
+  const [duracion, setDuracion] = useState<DuracionEncuesta>(() => (adjuntoInicial?.tipo === "encuesta" ? adjuntoInicial.duracion : "3d"));
+  const [tituloEvento, setTituloEvento] = useState(() => (adjuntoInicial?.tipo === "evento" ? adjuntoInicial.titulo : ""));
+  const [fechaEvento, setFechaEvento] = useState(() => (adjuntoInicial?.tipo === "evento" ? adjuntoInicial.fechaHora : ""));
+  const [lugarEvento, setLugarEvento] = useState(() => (adjuntoInicial?.tipo === "evento" ? adjuntoInicial.lugar : ""));
 
   // Cerrar con Escape, bloquear el scroll del fondo y enfocar el texto al abrir.
   useEffect(() => {
@@ -677,7 +680,7 @@ export function CrearPublicacionSheet({ autor = AUTOR_MOCK, onClose, onSubmit }:
           </button>
           <div className="text-center">
             <h1 id={tituloId} className="text-headline-sm text-on-surface leading-none">
-              Nueva Publicación
+              {editando ? "Editar Publicación" : "Nueva Publicación"}
             </h1>
             <p className="text-label-md text-secondary mt-1">Comunidad UAQ • Comunidad Universitaria</p>
           </div>
@@ -850,7 +853,7 @@ export function CrearPublicacionSheet({ autor = AUTOR_MOCK, onClose, onSubmit }:
             disabled={!puedePublicar}
             className="w-full py-3 bg-primary hover:bg-on-primary-fixed-variant text-on-primary text-body-lg font-bold rounded-xl shadow active:scale-[0.99] transition-all disabled:bg-surface-container-high disabled:text-outline disabled:shadow-none disabled:cursor-not-allowed"
           >
-            Publicar
+            {editando ? "Guardar cambios" : "Publicar"}
           </button>
           <button
             type="button"
