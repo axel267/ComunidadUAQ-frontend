@@ -1,6 +1,5 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import {
   AJUSTES_INICIALES,
   PERFIL_MOCK,
@@ -8,7 +7,8 @@ import {
   type AjustesCuenta,
   type PerfilEstudiante,
 } from "@/data/perfil";
-
+import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
+import { getStoredSession } from "@/services/auth";
 /** Solo campos editables por el alumno; correo institucional y expediente están bloqueados por Control Escolar. */
 export type CambiosPerfilEditables = Partial<
   Pick<PerfilEstudiante, "nombre" | "campus" | "biografia" | "telefono" | "intereses">
@@ -30,11 +30,9 @@ interface PerfilContextValue {
 
 const PerfilContext = createContext<PerfilContextValue | null>(null);
 
-// TODO: persistir perfil editable y preferencias en el backend (RF02 / RF07); correo y expediente son inmutables.
 export function PerfilProvider({ children }: { children: ReactNode }) {
   const [perfil, setPerfil] = useState<PerfilEstudiante>(PERFIL_MOCK);
   const [ajustes, setAjustes] = useState<AjustesCuenta>(AJUSTES_INICIALES);
-
   const actualizarPerfil = useCallback((cambios: CambiosPerfilEditables) => {
     setPerfil((actual) => {
       const nombreLimpio = cambios.nombre !== undefined ? cambios.nombre.trim() : actual.nombre;
@@ -50,7 +48,30 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
       };
     });
   }, []);
+  // AGREGA ESTE BLOQUE AQUÍ:
+  useEffect(() => {
+    // 1. Buscamos si hay una sesión guardada en localStorage
+    const session = getStoredSession();
 
+    if (session && session.user) {
+      const u = session.user;
+      const facultadPrincipal = u.facultades?.[0];
+
+      // 2. Sobrescribimos el perfil con los datos reales de la BD
+      setPerfil((prev) => ({
+        ...prev,
+        nombre: u.nombre,
+        nombreCredencial: u.nombre,
+        siglas: calcularSiglas(u.nombre),
+        correoInstitucional: u.email,
+        expediente: String(u.expediente || prev.expediente),
+        carrera: u.carrera || prev.carrera,
+        facultad: facultadPrincipal?.nombre || prev.facultad,
+        facultadSigla: facultadPrincipal?.abreviatura || prev.facultadSigla,
+        estatus: u.rol === 'Estudiante' ? 'Alumno Regular' : (u.rol || prev.estatus),
+      }));
+    }
+  }, []);
   const actualizarPrivacidad = useCallback((cambios: Partial<AjustesCuenta["privacidad"]>) => {
     setAjustes((actual) => ({
       ...actual,

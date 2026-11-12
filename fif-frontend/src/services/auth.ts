@@ -1,12 +1,15 @@
-// Endpoints asumidos siguiendo el patrón REST de NestJS descrito en el documento de arquitectura (RF01).
-// Ajustar las rutas en cuanto se comparta el contrato real (Swagger/Postman) del backend.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface AuthUser {
   id: number;
   nombre: string;
   email: string;
-  rol: 'estudiante' | 'docente' | 'coordinacion' | 'administrador';
+  expediente?: number;
+  rol: string;
+  rolId?: number;
+  area?: string;
+  carrera?: string;
+  facultades?: { id: number; nombre: string; abreviatura: string }[];
 }
 
 export interface AuthSession {
@@ -17,7 +20,10 @@ export interface AuthSession {
 async function parseJsonResponse<T>(res: Response, fallbackError: string): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.message || fallbackError);
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : body?.message || fallbackError;
+    throw new Error(message);
   }
   return res.json();
 }
@@ -30,9 +36,46 @@ export const login = async (credentials: {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(credentials),
+    body: JSON.stringify({
+      email: credentials.email,
+      password: credentials.password,
+    }),
   });
-  return parseJsonResponse(res, 'Credenciales inválidas o cuenta no activa.');
+
+  const session = await parseJsonResponse<AuthSession>(res, 'Credenciales inválidas o cuenta no activa.');
+
+  if (typeof window !== 'undefined' && session.accessToken) {
+    localStorage.setItem('auth_token', session.accessToken);
+    localStorage.setItem('auth_user', JSON.stringify(session.user));
+  }
+
+  return session;
+};
+
+export const getStoredSession = (): AuthSession | null => {
+  if (typeof window === 'undefined') return null;
+  const token = localStorage.getItem('auth_token');
+  const userJson = localStorage.getItem('auth_user');
+  if (!token || !userJson) return null;
+  try {
+    return {
+      accessToken: token,
+      user: JSON.parse(userJson),
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+};
+
+export const logout = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_user');
 };
 
 export interface ActivateAccountPayload {
