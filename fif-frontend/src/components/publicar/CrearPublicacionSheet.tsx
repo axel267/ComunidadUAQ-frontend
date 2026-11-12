@@ -43,10 +43,17 @@ import {
 } from "@/data/publicaciones";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
 
+export interface OpcionesInicialesPublicacion {
+  tema?: TemaPublicacion;
+  visibilidad?: VisibilidadPublicacion;
+  tab?: TipoAdjunto | null;
+}
+
 interface CrearPublicacionSheetProps {
   autor?: AutorPublicacion;
   /** Si se envía, el sheet funciona como editor de esa publicación. */
   publicacion?: Publicacion;
+  inicial?: OpcionesInicialesPublicacion;
   onClose: () => void;
   onSubmit: (publicacion: NuevaPublicacion) => void;
 }
@@ -541,6 +548,7 @@ function PanelEvento({
 export function CrearPublicacionSheet({
   autor: autorProp = AUTOR_MOCK,
   publicacion,
+  inicial,
   onClose,
   onSubmit,
 }: CrearPublicacionSheetProps) {
@@ -551,9 +559,11 @@ export function CrearPublicacionSheet({
   const adjuntoInicial = publicacion?.adjunto;
 
   const [texto, setTexto] = useState(publicacion?.texto ?? "");
-  const [tema, setTema] = useState<TemaPublicacion>(publicacion?.tema ?? "hub");
-  const [visibilidad, setVisibilidad] = useState<VisibilidadPublicacion>(publicacion?.visibilidad ?? "facultad");
-  const [tab, setTab] = useState<TipoAdjunto | null>(adjuntoInicial?.tipo ?? null);
+  const [tema, setTema] = useState<TemaPublicacion>(publicacion?.tema ?? inicial?.tema ?? "hub");
+  const [visibilidad, setVisibilidad] = useState<VisibilidadPublicacion>(
+    publicacion?.visibilidad ?? inicial?.visibilidad ?? "facultad"
+  );
+  const [tab, setTab] = useState<TipoAdjunto | null>(adjuntoInicial?.tipo ?? inicial?.tab ?? null);
   const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
 
   const [imagen, setImagen] = useState<File | undefined>(() => (adjuntoInicial?.tipo === "imagen" ? adjuntoInicial.archivo : undefined));

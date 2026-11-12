@@ -19,8 +19,8 @@ import { InsigniaCard } from "@/components/recompensas/InsigniaCard";
 import { ValidarAsistenciaSheet } from "@/components/recompensas/ValidarAsistenciaSheet";
 import { DetalleInsigniaSheet } from "@/components/recompensas/DetalleInsigniaSheet";
 import { useRecompensas } from "@/context/RecompensasContext";
+import { usePerfil } from "@/context/PerfilContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
-import { PERFIL_MOCK } from "@/data/perfil";
 import {
   FACULTADES_FILTRO,
   PUNTOS_POR_APORTE_SOLIDARIO,
@@ -41,7 +41,7 @@ export default function RecompensasPage() {
   const [codigoPrefill, setCodigoPrefill] = useState<string>("");
   const [insigniaSeleccionada, setInsigniaSeleccionada] = useState<Insignia | null>(null);
 
-  const perfil = PERFIL_MOCK;
+  const { perfil } = usePerfil();
   const { actual, siguiente } = nivel;
   const meta = siguiente?.minimo ?? actual.minimo;
   const porcentaje = siguiente ? Math.min(100, Math.round((puntos.total / meta) * 100)) : 100;

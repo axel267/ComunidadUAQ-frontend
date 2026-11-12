@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
@@ -9,6 +10,7 @@ import {
   Copy,
   FilePlus2,
   LogOut,
+  MapPin,
   Pencil,
   Settings,
   type LucideIcon,
@@ -19,8 +21,10 @@ import { CredencialDigital } from "@/components/perfil/CredencialDigital";
 import { ResumenRecompensas } from "@/components/perfil/ResumenRecompensas";
 import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { useAppToast } from "@/context/ToastContext";
+import { useComunidad } from "@/context/ComunidadContext";
 import { useGuardados } from "@/context/GuardadosContext";
 import { useNotificacionesApp } from "@/context/NotificacionesContext";
+import { usePerfil } from "@/context/PerfilContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
 import { AVISOS_MOCK } from "@/data/avisos";
@@ -28,7 +32,6 @@ import {
   CUENTA_SEGURIDAD,
   EVENTOS_REGISTRADOS_MOCK,
   GESTION_ACADEMICA,
-  PERFIL_MOCK,
   type EntradaMenu,
 } from "@/data/perfil";
 
@@ -69,14 +72,17 @@ export default function PerfilPage() {
   const router = useRouter();
   const showToast = useAppToast();
   const { publicaciones } = usePublicacionesApp();
+  const { posts: postsComunidad } = useComunidad();
   const { guardados, alternar } = useGuardados();
   const { abrir: abrirNotificaciones } = useNotificacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [pestana, setPestana] = useState<Pestana>("publicaciones");
   const [credencialCompleta, setCredencialCompleta] = useState(false);
 
-  const perfil = PERFIL_MOCK;
+  const { perfil, ajustes } = usePerfil();
   const avisosGuardados = AVISOS_MOCK.filter((a) => guardados.has(a.id));
+  const comunidadGuardados = postsComunidad.filter((p) => guardados.has(p.id));
+  const convocatoriasInscritas = postsComunidad.filter((p) => p.eventoConvocatoria?.inscrito);
 
   const copiarExpediente = async () => {
     try {
@@ -91,6 +97,7 @@ export default function PerfilPage() {
 
   const seleccionarEntrada = (entrada: EntradaMenu) => {
     if (entrada.id === "avisos") return abrirNotificaciones();
+    if (entrada.id === "seguridad") return router.push("/perfil/ajustes#seguridad");
     proximamente(entrada.titulo);
   };
 
@@ -105,7 +112,11 @@ export default function PerfilPage() {
       id: "guardados",
       label: "Guardados & Eventos",
       icono: Bookmark,
-      total: avisosGuardados.length + EVENTOS_REGISTRADOS_MOCK.length,
+      total:
+        avisosGuardados.length +
+        comunidadGuardados.length +
+        EVENTOS_REGISTRADOS_MOCK.length +
+        convocatoriasInscritas.length,
     },
   ];
 
@@ -125,22 +136,20 @@ export default function PerfilPage() {
               </div>
             </div>
             <div className="flex items-center gap-space-xs">
-              <button
-                type="button"
+              <Link
+                href="/perfil/ajustes"
                 aria-label="Ajustes de cuenta"
-                onClick={() => proximamente("Los ajustes de cuenta")}
                 className="w-touch-target-min h-touch-target-min rounded-full bg-surface-container-low text-on-surface-variant flex items-center justify-center hover:bg-surface-container transition-colors shadow-sm"
               >
                 <Settings className="w-[22px] h-[22px]" />
-              </button>
-              <button
-                type="button"
-                onClick={() => proximamente("La edición del perfil")}
+              </Link>
+              <Link
+                href="/perfil/ajustes#perfil"
                 className="h-10 px-space-md rounded-full bg-surface-container text-on-surface text-label-md flex items-center gap-space-xxs hover:bg-surface-container-high transition-colors shadow-sm"
               >
                 <Pencil className="w-[18px] h-[18px] text-primary" />
                 Editar
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -154,8 +163,34 @@ export default function PerfilPage() {
             <p className="text-body-md text-on-surface-variant">
               {perfil.carrera} <span className="text-outline-variant">•</span> {perfil.semestre}º Semestre
             </p>
-            <p className="text-body-sm text-secondary">{perfil.facultad}</p>
-            <div className="pt-space-xs">
+            <p className="text-body-sm text-secondary flex items-center flex-wrap gap-1.5">
+              <span>{perfil.facultad}</span>
+              {ajustes.privacidad.mostrarCampus && (
+                <>
+                  <span className="text-outline-variant">•</span>
+                  <span className="inline-flex items-center gap-0.5 text-primary font-medium">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {perfil.campus}
+                  </span>
+                </>
+              )}
+            </p>
+            {perfil.biografia && (
+              <p className="text-body-sm text-on-surface-variant pt-1 leading-relaxed">{perfil.biografia}</p>
+            )}
+            {perfil.intereses.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {perfil.intereses.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-0.5 rounded-full bg-surface-container-low text-primary text-label-sm font-inter"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="pt-space-xs flex items-center flex-wrap gap-2">
               <button
                 type="button"
                 onClick={copiarExpediente}
@@ -165,6 +200,7 @@ export default function PerfilPage() {
                 <span className="text-label-md font-mono tracking-tight text-on-surface">EXP-{perfil.expediente}</span>
                 <Copy className="w-4 h-4 text-secondary" />
               </button>
+              <span className="text-body-sm text-secondary font-mono truncate">{perfil.correoInstitucional}</span>
             </div>
           </div>
         </section>
@@ -274,6 +310,57 @@ export default function PerfilPage() {
                 </article>
               ))}
 
+              {comunidadGuardados.map((post) => (
+                <article
+                  key={post.id}
+                  className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`px-space-xs py-0.5 rounded-full text-label-sm font-inter ${post.autor.facultadClases}`}>
+                      Comunidad • {post.autor.facultad}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Quitar publicación de ${post.autor.nombre} de guardados`}
+                      onClick={() => {
+                        alternar(post.id);
+                        showToast("Publicación removida de guardados");
+                      }}
+                      className="text-primary hover:text-error transition-colors"
+                    >
+                      <Bookmark className="w-5 h-5 fill-current" />
+                    </button>
+                  </div>
+                  <h2 className="text-headline-sm text-on-surface">{post.autor.nombre}</h2>
+                  <p className="text-body-md text-on-surface-variant line-clamp-2">{post.texto}</p>
+                  <span className="text-body-sm text-secondary">{post.subtituloTiempo}</span>
+                </article>
+              ))}
+
+              {convocatoriasInscritas.map((post) => {
+                const ev = post.eventoConvocatoria!;
+                return (
+                  <article
+                    key={`inscrito-${post.id}`}
+                    className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="bg-tertiary-fixed text-on-tertiary-fixed px-space-xs py-0.5 rounded-full text-label-sm font-inter">
+                        Convocatoria Comunidad
+                      </span>
+                      <span className="text-label-md text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        Pre-registrado
+                      </span>
+                    </div>
+                    <h2 className="text-headline-sm text-on-surface">{ev.titulo}</h2>
+                    <p className="text-body-md text-on-surface-variant">
+                      {ev.fecha} • {ev.lugar}
+                    </p>
+                    <span className="text-body-sm text-secondary">Organiza: {post.autor.nombre}</span>
+                  </article>
+                );
+              })}
+
               {EVENTOS_REGISTRADOS_MOCK.map((evento) => (
                 <article
                   key={evento.id}
@@ -293,9 +380,9 @@ export default function PerfilPage() {
                 </article>
               ))}
 
-              {avisosGuardados.length === 0 && (
+              {avisosGuardados.length === 0 && comunidadGuardados.length === 0 && (
                 <p className="text-body-sm text-secondary text-center px-space-md">
-                  Guarda avisos desde el inicio con el ícono de marcador y aparecerán aquí.
+                  Guarda avisos o publicaciones de la comunidad con el ícono de marcador y aparecerán aquí.
                 </p>
               )}
             </div>

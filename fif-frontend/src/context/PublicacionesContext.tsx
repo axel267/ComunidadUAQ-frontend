@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { usePerfil } from "@/context/PerfilContext";
 import { usePublicaciones } from "@/hooks/usePublicaciones";
 
 type PublicacionesContextValue = ReturnType<typeof usePublicaciones>;
@@ -8,7 +9,17 @@ type PublicacionesContextValue = ReturnType<typeof usePublicaciones>;
 const PublicacionesContext = createContext<PublicacionesContextValue | null>(null);
 
 export function PublicacionesProvider({ children }: { children: ReactNode }) {
-  const valor = usePublicaciones();
+  const { perfil } = usePerfil();
+  const autor = useMemo(
+    () => ({
+      nombre: perfil.nombre,
+      siglas: perfil.siglas,
+      facultad: perfil.facultad,
+      etiqueta: `Informática ${perfil.facultadSigla === "FIF" ? "UAQ" : perfil.facultadSigla}`,
+    }),
+    [perfil.nombre, perfil.siglas, perfil.facultad, perfil.facultadSigla]
+  );
+  const valor = usePublicaciones(autor);
   return <PublicacionesContext.Provider value={valor}>{children}</PublicacionesContext.Provider>;
 }
 

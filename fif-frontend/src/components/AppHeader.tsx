@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Bell, GraduationCap } from "lucide-react";
 import { useNotificacionesApp } from "@/context/NotificacionesContext";
-import { PERFIL_MOCK } from "@/data/perfil";
+import { usePerfil } from "@/context/PerfilContext";
 
 interface AppHeaderProps {
   subtitle: string;
@@ -11,6 +11,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ subtitle }: AppHeaderProps) {
   const { sinLeer: notificacionesSinLeer, abrir } = useNotificacionesApp();
+  const { perfil } = usePerfil();
 
   return (
     <header className="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
@@ -47,7 +48,7 @@ export function AppHeader({ subtitle }: AppHeaderProps) {
             aria-label="Mi perfil"
             className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-primary-container to-tertiary-container text-on-primary text-label-sm ring-2 ring-primary-fixed hover:scale-105 active:scale-95 transition-transform"
           >
-            {PERFIL_MOCK.siglas}
+            {perfil.siglas}
           </Link>
         </div>
       </div>

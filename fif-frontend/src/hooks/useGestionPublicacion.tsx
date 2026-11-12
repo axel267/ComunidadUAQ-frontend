@@ -1,13 +1,22 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import { CrearPublicacionSheet } from "@/components/publicar/CrearPublicacionSheet";
+import {
+  CrearPublicacionSheet,
+  type OpcionesInicialesPublicacion,
+} from "@/components/publicar/CrearPublicacionSheet";
 import { OpcionesPublicacionSheet } from "@/components/publicar/OpcionesPublicacionSheet";
 import { useAppToast } from "@/context/ToastContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
+import { usePerfil } from "@/context/PerfilContext";
 import { etiquetaVisibilidad, type NuevaPublicacion, type Publicacion } from "@/data/publicaciones";
 
 const VENTANA_DESHACER_MS = 5000;
+
+function esOpcionesIniciales(valor: unknown): valor is OpcionesInicialesPublicacion {
+  if (!valor || typeof valor !== "object") return false;
+  return !("nativeEvent" in valor) && !("target" in valor);
+}
 
 /**
  * Flujo completo de publicaciones (crear, editar, eliminar con deshacer) con sus hojas y avisos.
@@ -17,13 +26,21 @@ const VENTANA_DESHACER_MS = 5000;
 export function useGestionPublicacion() {
   const showToast = useAppToast();
   const { crear, editar, eliminar, restaurar } = usePublicacionesApp();
+  const { perfil, ajustes } = usePerfil();
   const [creando, setCreando] = useState(false);
+  const [opcionesIniciales, setOpcionesIniciales] = useState<OpcionesInicialesPublicacion | undefined>(undefined);
   const [editando, setEditando] = useState<Publicacion | null>(null);
   const [gestionando, setGestionando] = useState<Publicacion | null>(null);
 
-  const abrirCrear = useCallback(() => setCreando(true), []);
+  const abrirCrear = useCallback((opciones?: OpcionesInicialesPublicacion | unknown) => {
+    setOpcionesIniciales(esOpcionesIniciales(opciones) ? opciones : undefined);
+    setCreando(true);
+  }, []);
   const abrirOpciones = useCallback((publicacion: Publicacion) => setGestionando(publicacion), []);
-  const cerrarCrear = useCallback(() => setCreando(false), []);
+  const cerrarCrear = useCallback(() => {
+    setCreando(false);
+    setOpcionesIniciales(undefined);
+  }, []);
   const cerrarEdicion = useCallback(() => setEditando(null), []);
   const cerrarOpciones = useCallback(() => setGestionando(null), []);
 
@@ -89,7 +106,22 @@ export function useGestionPublicacion() {
 
   const hojas: ReactNode = (
     <>
-      {creando && <CrearPublicacionSheet onClose={cerrarCrear} onSubmit={handlePublicar} />}
+      {creando && (
+        <CrearPublicacionSheet
+          autor={{
+            nombre: perfil.nombre,
+            siglas: perfil.siglas,
+            facultad: perfil.facultad,
+            etiqueta: `${perfil.facultadSigla === "FIF" ? "Informática" : perfil.facultadSigla} UAQ`,
+          }}
+          inicial={{
+            visibilidad: ajustes.privacidad.visibilidadDefault,
+            ...opcionesIniciales,
+          }}
+          onClose={cerrarCrear}
+          onSubmit={handlePublicar}
+        />
+      )}
 
       {gestionando && (
         <OpcionesPublicacionSheet

@@ -130,7 +130,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Bolita flotante y ventana de CopilotKit siempre al frente y por encima de la barra de navegación */
+/* Bolita flotante y ventana de Qua (CopilotKit) siempre al frente y por encima de la barra de navegación */
 .copilotKitPopup {
   z-index: 9999 !important;
   bottom: 5.5rem !important;
@@ -139,7 +139,11 @@ body {
 
 .copilotKitButton {
   z-index: 9999 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 74, 198, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+  padding: 0 !important;
+  border: 2px solid #ffffff !important;
+  background-color: #004ac6 !important;
+  overflow: visible !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 74, 198, 0.42), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
@@ -149,6 +153,32 @@ body {
 
 .copilotKitWindow {
   z-index: 9999 !important;
+  background-color: #f7f9fb !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+@media (min-width: 640px) {
+  .copilotKitWindow {
+    bottom: 9.5rem !important;
+    right: 1.25rem !important;
+    width: 25rem !important;
+    height: min(650px, calc(100dvh - 11rem)) !important;
+    max-height: calc(100dvh - 11rem) !important;
+    margin-bottom: 0 !important;
+    border-radius: 1.5rem !important;
+    border: 1px solid rgba(195, 198, 215, 0.45) !important;
+  }
+}
+
+.copilotKitMessages {
+  background-color: #f7f9fb !important;
+  justify-content: flex-start !important;
+}
+
+.copilotKitMessagesFooter {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Bottom-sheet de Crear Publicación */
