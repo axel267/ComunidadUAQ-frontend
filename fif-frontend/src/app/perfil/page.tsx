@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Copy,
   FilePlus2,
+  LogIn,
   LogOut,
   MapPin,
   Pencil,
@@ -28,7 +29,7 @@ import { usePerfil } from "@/context/PerfilContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
 import { AVISOS_MOCK } from "@/data/avisos";
-import { logout } from "@/services/auth";
+import { getStoredSession, logout } from "@/services/auth";
 import {
   CUENTA_SEGURIDAD,
   EVENTOS_REGISTRADOS_MOCK,
@@ -81,6 +82,13 @@ export default function PerfilPage() {
   const [credencialCompleta, setCredencialCompleta] = useState(false);
 
   const { perfil, ajustes } = usePerfil();
+  const [estaAutenticado, setEstaAutenticado] = useState(false);
+
+  useEffect(() => {
+    const session = getStoredSession();
+    setEstaAutenticado(Boolean(session?.accessToken && session?.user));
+  }, []);
+
   const avisosGuardados = AVISOS_MOCK.filter((a) => guardados.has(a.id));
   const comunidadGuardados = postsComunidad.filter((p) => guardados.has(p.id));
   const convocatoriasInscritas = postsComunidad.filter((p) => p.eventoConvocatoria?.inscrito);
@@ -105,6 +113,8 @@ export default function PerfilPage() {
 
   const cerrarSesion = () => {
     logout();
+    setEstaAutenticado(false);
+    showToast("Sesión cerrada correctamente", { tipo: "info" });
     window.location.href = "/login";
   };
 
@@ -409,14 +419,24 @@ export default function PerfilPage() {
             Cuenta &amp; Seguridad
           </h2>
           <GrupoMenu entradas={CUENTA_SEGURIDAD} onSeleccionar={seleccionarEntrada} />
-          <button
-            type="button"
-            onClick={cerrarSesion}
-            className="mt-space-sm w-full h-12 rounded-xl bg-surface-container-low text-error hover:bg-error-container/40 text-label-lg flex items-center justify-center gap-space-xs transition-colors active:scale-[0.98] shadow-sm"
-          >
-            <LogOut className="w-5 h-5" />
-            Cerrar Sesión
-          </button>
+          {estaAutenticado ? (
+            <button
+              type="button"
+              onClick={cerrarSesion}
+              className="mt-space-sm w-full h-12 rounded-xl bg-surface-container-low text-error hover:bg-error-container/40 text-label-lg flex items-center justify-center gap-space-xs transition-colors active:scale-[0.98] shadow-sm cursor-pointer"
+            >
+              <LogOut className="w-5 h-5" />
+              Cerrar Sesión
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="mt-space-sm w-full h-12 rounded-xl bg-primary text-on-primary hover:bg-primary/90 text-label-lg flex items-center justify-center gap-space-xs transition-colors active:scale-[0.98] shadow-sm"
+            >
+              <LogIn className="w-5 h-5" />
+              Iniciar Sesión
+            </Link>
+          )}
         </section>
       </main>
 
