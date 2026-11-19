@@ -21,10 +21,15 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login({ email, password, rememberDevice });
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
+      await login({ email: email.trim(), password: password.trim(), rememberDevice });
+      window.location.href = "/";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("fetch") || msg.includes("Failed") || msg.includes("Network")) {
+        setError("No se pudo conectar con el servidor. Verifica tu conexión de red.");
+      } else {
+        setError(msg || "Credenciales inválidas.");
+      }
     } finally {
       setLoading(false);
     }

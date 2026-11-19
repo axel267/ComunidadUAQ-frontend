@@ -1,4 +1,4 @@
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = (): string => {
   if (
     typeof window !== "undefined" &&
     window.location.hostname &&
@@ -10,7 +10,10 @@ const getApiBaseUrl = () => {
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 };
 
-const API_URL = getApiBaseUrl();
+const API_URL = {
+  toString: () => getApiBaseUrl(),
+  valueOf: () => getApiBaseUrl(),
+} as unknown as string;
 
 export interface AuthUser {
   id: number;
