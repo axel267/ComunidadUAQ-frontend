@@ -108,6 +108,30 @@ export default function HomePage() {
       <AppHeader subtitle="Anuncios" />
 
       <main className="flex flex-col w-full pt-20 pb-24 px-screen-margin-mobile gap-space-lg">
+        {/* Panel de Emisión de Alertas (Exclusivo Administrador) */}
+        {esAdmin && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-primary-container/30 border border-primary/20 rounded-2xl p-4 gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-label-md font-bold text-on-surface">Centro de Alertas Oficiales</span>
+                <span className="text-body-xs text-secondary">
+                  Emite alertas urgentes con acuse de recibo obligatorio o comunicados generales.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalAvisoAbierto(true)}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-label-sm font-semibold hover:bg-primary/90 transition-all shrink-0 shadow-xs self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Alerta / Aviso</span>
+            </button>
+          </div>
+        )}
+
         {publicaciones.length > 0 && (
           <section aria-label="Tus publicaciones" className="flex flex-col gap-space-md">
             <div className="flex items-center justify-between bg-surface-container-low px-space-md py-space-xs rounded-xl shadow-sm">
@@ -123,30 +147,6 @@ export default function HomePage() {
               <PublicacionCard key={publicacion.id} publicacion={publicacion} onOpciones={abrirOpciones} />
             ))}
           </section>
-        )}
-
-        {/* Barra de acción rápida para Administrador */}
-        {esAdmin && (
-          <div className="flex items-center justify-between bg-primary-container/30 border border-primary/20 rounded-2xl p-4 gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-label-md font-bold text-on-surface">Centro de Alertas Oficiales</span>
-                <span className="text-body-xs text-secondary">
-                  Emite alertas urgentes con acuse de recibo obligatorio o comunicados generales.
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => setModalAvisoAbierto(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-label-sm font-semibold hover:bg-primary/90 transition-all shrink-0 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Alerta / Aviso</span>
-            </button>
-          </div>
         )}
 
         <HeroAnnouncement onConsultarClick={() => showToast("Abriendo Convocatoria Oficial...")} />
