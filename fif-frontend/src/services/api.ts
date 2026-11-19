@@ -297,6 +297,35 @@ export const confirmarLecturaAviso = async (
   return res.json();
 };
 
+export interface CreateAvisoPayload {
+  titulo: string;
+  contenido?: string;
+  urgencia: "BAJA" | "MEDIA" | "ALTA" | "URGENTE";
+  facultadId?: number | null;
+  imagenesPortadaUrl?: string;
+}
+
+export const createAviso = async (data: CreateAvisoPayload): Promise<AvisoBackend> => {
+  const res = await fetch(`${API_URL}/avisos`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || "Error al crear el aviso");
+  }
+  return res.json();
+};
+
+export const deleteAviso = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/avisos/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar el aviso");
+};
+
 // Modelo que devuelve el backend desde la tabla foro_publicaciones
 export interface PublicacionBackend {
   id: number;

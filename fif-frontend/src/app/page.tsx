@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { ShieldCheck } from "lucide-react";
+import { AlertTriangle, Plus, ShieldCheck, X } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { useAppToast } from "@/context/ToastContext";
@@ -13,7 +13,13 @@ import { TelegramBanner } from "@/components/home/TelegramBanner";
 import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
-import { getAvisos } from "@/services/api";
+import {
+  getAvisos,
+  createAviso,
+  getFacultades,
+  type Facultade,
+} from "@/services/api";
+import { getStoredSession } from "@/services/auth";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 
 export default function HomePage() {
@@ -23,9 +29,19 @@ export default function HomePage() {
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
 
   const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [facultades, setFacultades] = useState<Facultade[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [esAdmin, setEsAdmin] = useState(false);
 
-  useEffect(() => {
+  // Modal para crear Aviso / Alerta Urgente (Admin)
+  const [modalAvisoAbierto, setModalAvisoAbierto] = useState(false);
+  const [tituloAviso, setTituloAviso] = useState("");
+  const [contenidoAviso, setContenidoAviso] = useState("");
+  const [urgenciaAviso, setUrgenciaAviso] = useState<"BAJA" | "MEDIA" | "ALTA" | "URGENTE">("URGENTE");
+  const [facultadAvisoId, setFacultadAvisoId] = useState<string>("todas");
+  const [guardandoAviso, setGuardandoAviso] = useState(false);
+
+  const cargarAvisos = () => {
     getAvisos()
       .then((data) => setAvisos(data))
       .catch((err) => {
@@ -33,12 +49,59 @@ export default function HomePage() {
         showToast("No se pudieron cargar los comunicados");
       })
       .finally(() => setCargando(false));
+  };
+
+  useEffect(() => {
+    const session = getStoredSession();
+    if (session?.user?.rol === "Administrador" || session?.user?.rolId === 1) {
+      setEsAdmin(true);
+    }
+    cargarAvisos();
+    getFacultades().then((f) => setFacultades(f)).catch(() => []);
   }, [showToast]);
 
   const avisosFiltrados = useMemo(
     () => (categoria === "all" ? avisos : avisos.filter((a) => a.categoria === categoria)),
     [categoria, avisos]
   );
+
+  const handleCrearAviso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tituloAviso.trim() || !contenidoAviso.trim()) {
+      showToast("El título y el mensaje son requeridos", { tipo: "advertencia" });
+      return;
+    }
+
+    setGuardandoAviso(true);
+    try {
+      await createAviso({
+        titulo: tituloAviso.trim(),
+        contenido: contenidoAviso.trim(),
+        urgencia: urgenciaAviso,
+        facultadId: facultadAvisoId === "todas" ? null : Number(facultadAvisoId),
+      });
+
+      setModalAvisoAbierto(false);
+      setTituloAviso("");
+      setContenidoAviso("");
+      setUrgenciaAviso("URGENTE");
+      setFacultadAvisoId("todas");
+
+      cargarAvisos();
+
+      if (urgenciaAviso === "URGENTE") {
+        showToast("Alerta urgente publicada. Desplegará acuse de recibo obligatorio a los alumnos.", {
+          tipo: "exito",
+        });
+      } else {
+        showToast("Comunicado oficial publicado con éxito.", { tipo: "exito" });
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error al publicar el comunicado", { tipo: "error" });
+    } finally {
+      setGuardandoAviso(false);
+    }
+  };
 
   return (
     <div className="flex flex-col relative w-full min-h-screen bg-surface">
@@ -60,6 +123,30 @@ export default function HomePage() {
               <PublicacionCard key={publicacion.id} publicacion={publicacion} onOpciones={abrirOpciones} />
             ))}
           </section>
+        )}
+
+        {/* Barra de acción rápida para Administrador */}
+        {esAdmin && (
+          <div className="flex items-center justify-between bg-primary-container/30 border border-primary/20 rounded-2xl p-4 gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-label-md font-bold text-on-surface">Centro de Alertas Oficiales</span>
+                <span className="text-body-xs text-secondary">
+                  Emite alertas urgentes con acuse de recibo obligatorio o comunicados generales.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalAvisoAbierto(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-label-sm font-semibold hover:bg-primary/90 transition-all shrink-0 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Alerta / Aviso</span>
+            </button>
+          </div>
         )}
 
         <HeroAnnouncement onConsultarClick={() => showToast("Abriendo Convocatoria Oficial...")} />
@@ -88,6 +175,117 @@ export default function HomePage() {
 
         <TelegramBanner onJoinClick={() => showToast("Redirigiendo a Telegram...")} />
       </main>
+
+      {/* Modal Crear Comunicado / Alerta Urgente (Admin) */}
+      {modalAvisoAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-surface rounded-2xl shadow-2xl border border-outline-variant flex flex-col overflow-hidden max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-error" />
+                <h3 className="text-title-lg font-bold text-on-surface">Emitir Comunicado Oficial</h3>
+              </div>
+              <button
+                onClick={() => setModalAvisoAbierto(false)}
+                className="p-1 rounded-lg text-secondary hover:text-on-surface"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearAviso} className="p-6 overflow-y-auto flex flex-col gap-4">
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Nivel de Urgencia *
+                </label>
+                <select
+                  value={urgenciaAviso}
+                  onChange={(e) => setUrgenciaAviso(e.target.value as any)}
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="URGENTE">
+                    [URGENTE] Despliega ventana emergente obligatoria y acuse de recibo
+                  </option>
+                  <option value="ALTA">[ALTA] Prioridad alta en la lista de avisos</option>
+                  <option value="MEDIA">[MEDIA] Comunicado regular de coordinación</option>
+                  <option value="BAJA">[BAJA] Notificación informativa general</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Alcance / Facultad
+                </label>
+                <select
+                  value={facultadAvisoId}
+                  onChange={(e) => setFacultadAvisoId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="todas">Toda la Universidad (Transversal UAQ)</option>
+                  {facultades.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nombre} ({f.abreviatura})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Título del aviso o alerta *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={tituloAviso}
+                  onChange={(e) => setTituloAviso(e.target.value)}
+                  placeholder="Ej. Suspensión de actividades por contingencia climática"
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Mensaje / Contenido detallado *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={contenidoAviso}
+                  onChange={(e) => setContenidoAviso(e.target.value)}
+                  placeholder="Instrucciones oficiales para la comunidad estudiantil y docente..."
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => setModalAvisoAbierto(false)}
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-secondary font-medium hover:bg-surface-container"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoAviso}
+                  className={`px-5 py-2.5 rounded-xl font-semibold text-on-primary transition-all disabled:opacity-50 ${
+                    urgenciaAviso === "URGENTE"
+                      ? "bg-error hover:bg-error/90"
+                      : "bg-primary hover:bg-primary/90"
+                  }`}
+                >
+                  {guardandoAviso
+                    ? "Publicando..."
+                    : urgenciaAviso === "URGENTE"
+                    ? "Emitir Alerta Urgente"
+                    : "Publicar Comunicado"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <AppBottomNav onPublishClick={abrirCrear} />
       {hojas}
