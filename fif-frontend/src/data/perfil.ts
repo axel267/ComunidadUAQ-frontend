@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, CircleHelp, GraduationCap, Bell, KeyRound } from "lucide-react";
+import { CalendarDays, CircleHelp, GraduationCap, Bell, KeyRound, BookOpen } from "lucide-react";
 import type { VisibilidadPublicacion } from "@/data/publicaciones";
 
 export const CAMPUSES_UAQ = [
@@ -135,7 +135,7 @@ export const AJUSTES_INICIALES: AjustesCuenta = {
 };
 
 export interface EntradaMenu {
-  id: "horario" | "kardex" | "avisos" | "seguridad" | "ayuda";
+  id: "horario" | "kardex" | "avisos" | "seguridad" | "ayuda" | "tramites";
   titulo: string;
   descripcion: string;
   icono: LucideIcon;
@@ -143,6 +143,13 @@ export interface EntradaMenu {
 }
 
 export const GESTION_ACADEMICA: EntradaMenu[] = [
+  {
+    id: "tramites",
+    titulo: "Guías de Trámites",
+    descripcion: "Titulación, servicio social y procedimientos paso a paso",
+    icono: BookOpen,
+    iconoClases: "bg-emerald-100 text-emerald-800",
+  },
   {
     id: "horario",
     titulo: "Horario de Clases",

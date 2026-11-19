@@ -116,3 +116,22 @@ export const resendActivationCode = async (email: string): Promise<void> => {
   });
   if (!res.ok) throw new Error('No se pudo reenviar el código.');
 };
+
+export interface CambiarContrasenaPayload {
+  userId: number;
+  contrasenaActual: string;
+  nuevaContrasena: string;
+  confirmarContrasena: string;
+}
+
+export const cambiarContrasenaApi = async (
+  payload: CambiarContrasenaPayload
+): Promise<{ ok: boolean; message?: string }> => {
+  const res = await fetch(`${API_URL}/auth/cambiar-contrasena`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return parseJsonResponse(res, 'No se pudo cambiar la contrasena.');
+};
+

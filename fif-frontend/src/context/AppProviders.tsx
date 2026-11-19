@@ -8,6 +8,7 @@ import { PublicacionesProvider } from "@/context/PublicacionesContext";
 import { GuardadosProvider } from "@/context/GuardadosContext";
 import { RecompensasProvider } from "@/context/RecompensasContext";
 import { ComunidadProvider } from "@/context/ComunidadContext";
+import { ModalAlertaUrgente } from "@/components/alertas/ModalAlertaUrgente";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -17,7 +18,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <PublicacionesProvider>
             <GuardadosProvider>
               <RecompensasProvider>
-                <ComunidadProvider>{children}</ComunidadProvider>
+                <ComunidadProvider>
+                  {children}
+                  <ModalAlertaUrgente />
+                </ComunidadProvider>
               </RecompensasProvider>
             </GuardadosProvider>
           </PublicacionesProvider>

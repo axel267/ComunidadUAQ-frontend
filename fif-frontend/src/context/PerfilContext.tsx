@@ -8,7 +8,7 @@ import {
   type PerfilEstudiante,
 } from "@/data/perfil";
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
-import { getStoredSession } from "@/services/auth";
+import { getStoredSession, cambiarContrasenaApi } from "@/services/auth";
 /** Solo campos editables por el alumno; correo institucional y expediente están bloqueados por Control Escolar. */
 export type CambiosPerfilEditables = Partial<
   Pick<PerfilEstudiante, "nombre" | "campus" | "biografia" | "telefono" | "intereses">
@@ -105,6 +105,18 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     if (actual === nueva) {
       return { ok: false, motivo: "La nueva contraseña debe ser distinta a la actual." };
     }
+    const session = getStoredSession();
+    if (session?.user?.id) {
+      cambiarContrasenaApi({
+        userId: session.user.id,
+        contrasenaActual: actual,
+        nuevaContrasena: nueva,
+        confirmarContrasena: nueva,
+      }).catch((e) => {
+        console.error("Error al actualizar contrasena en el backend:", e);
+      });
+    }
+
     setAjustes((prev) => ({
       ...prev,
       seguridad: { ...prev.seguridad, ultimoCambioPassword: "Actualizada hoy" },

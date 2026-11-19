@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Megaphone, MessagesSquare, Plus } from "lucide-react";
+import { BookOpen, Megaphone, MessagesSquare, Plus } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Anuncios", icon: Megaphone },
@@ -17,12 +17,22 @@ export function AppBottomNav({ onPublishClick }: { onPublishClick?: () => void }
       <div className="flex justify-around items-center h-16 px-space-md max-w-lg mx-auto">
         <Link
           href={NAV_ITEMS[0].href}
-          className={`flex flex-col items-center justify-center gap-0.5 min-w-16 h-touch-target-min transition-all ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-14 h-touch-target-min transition-all ${
             pathname === NAV_ITEMS[0].href ? "text-primary font-bold" : "text-secondary hover:text-primary"
           }`}
         >
-          <Megaphone className="w-6 h-6" />
+          <Megaphone className="w-5 h-5" />
           <span className="text-label-sm font-inter">{NAV_ITEMS[0].label}</span>
+        </Link>
+
+        <Link
+          href="/tramites"
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-14 h-touch-target-min transition-all ${
+            pathname === "/tramites" ? "text-primary font-bold" : "text-secondary hover:text-primary"
+          }`}
+        >
+          <BookOpen className="w-5 h-5" />
+          <span className="text-label-sm font-inter">Trámites</span>
         </Link>
 
         <button

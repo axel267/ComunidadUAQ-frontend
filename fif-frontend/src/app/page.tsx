@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ShieldCheck } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
@@ -13,7 +13,8 @@ import { TelegramBanner } from "@/components/home/TelegramBanner";
 import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
-import { AVISOS_MOCK, type CategoriaAviso } from "@/data/avisos";
+import { getAvisos } from "@/services/api";
+import type { Aviso, CategoriaAviso } from "@/data/avisos";
 
 export default function HomePage() {
   const showToast = useAppToast();
@@ -21,9 +22,22 @@ export default function HomePage() {
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
 
+  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    getAvisos()
+      .then((data) => setAvisos(data))
+      .catch((err) => {
+        console.error("Error cargando comunicados oficiales:", err);
+        showToast("No se pudieron cargar los comunicados");
+      })
+      .finally(() => setCargando(false));
+  }, [showToast]);
+
   const avisosFiltrados = useMemo(
-    () => (categoria === "all" ? AVISOS_MOCK : AVISOS_MOCK.filter((a) => a.categoria === categoria)),
-    [categoria]
+    () => (categoria === "all" ? avisos : avisos.filter((a) => a.categoria === categoria)),
+    [categoria, avisos]
   );
 
   return (
@@ -53,10 +67,17 @@ export default function HomePage() {
         <CategoryFilter active={categoria} onChange={setCategoria} total={avisosFiltrados.length} />
 
         <div className="flex flex-col gap-space-md">
-          {avisosFiltrados.map((aviso) => (
+          {cargando && (
+            <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm animate-pulse">
+              Cargando comunicados oficiales de la UAQ...
+            </div>
+          )}
+
+          {!cargando && avisosFiltrados.map((aviso) => (
             <AvisoCard key={aviso.id} aviso={aviso} onToast={showToast} />
           ))}
-          {avisosFiltrados.length === 0 && (
+
+          {!cargando && avisosFiltrados.length === 0 && (
             <div className="p-8 text-center text-secondary bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant">
               No hay avisos en esta categoría por ahora.
             </div>

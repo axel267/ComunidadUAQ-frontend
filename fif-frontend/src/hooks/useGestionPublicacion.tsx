@@ -46,7 +46,6 @@ export function useGestionPublicacion() {
 
   const handlePublicar = useCallback(
     (datos: NuevaPublicacion) => {
-      // TODO: enviar `NuevaPublicacion` a la API cuando el backend defina el contrato (RF04).
       const creada = crear(datos);
       setCreando(false);
       showToast("¡Publicación creada exitosamente!", {

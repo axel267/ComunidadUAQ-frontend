@@ -1,8 +1,10 @@
 "use client";
 
-import { BadgeCheck, Bookmark, Download, ImageIcon, Paperclip, Share2 } from "lucide-react";
+import { BadgeCheck, Bookmark, CheckCheck, Download, ImageIcon, Paperclip, Share2 } from "lucide-react";
 import { useGuardados } from "@/context/GuardadosContext";
 import type { Aviso } from "@/data/avisos";
+import { confirmarLecturaAviso } from "@/services/api";
+import { getStoredSession } from "@/services/auth";
 
 interface AvisoCardProps {
   aviso: Aviso;
@@ -39,6 +41,22 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
   const handleBookmark = () => {
     const quedaGuardado = alternar(aviso.id);
     onToast(quedaGuardado ? "Aviso guardado" : "Aviso removido de guardados");
+  };
+
+  const handleConfirmarLectura = async () => {
+    const session = getStoredSession();
+    const userId = session?.user?.id ?? 2;
+    const numId = Number(aviso.id);
+    if (Number.isNaN(numId)) {
+      onToast("Acuse de recibo registrado");
+      return;
+    }
+    try {
+      await confirmarLecturaAviso(numId, userId);
+      onToast("Acuse de recibo registrado en el sistema");
+    } catch {
+      onToast("Error al registrar acuse de recibo");
+    }
   };
 
   return (
@@ -83,13 +101,24 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
       )}
 
       <div className="flex items-center justify-between pt-space-xs">
-        <button
-          onClick={() => onToast(`Descargando ${aviso.referencia}...`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-secondary-container transition-colors text-label-md font-inter"
-        >
-          <Download className="w-[18px] h-[18px]" />
-          <span>{aviso.adjunto ? "Descargar PDF" : "Más información"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onToast(`Descargando ${aviso.referencia}...`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-secondary-container transition-colors text-label-md font-inter"
+          >
+            <Download className="w-[18px] h-[18px]" />
+            <span>{aviso.adjunto ? "Descargar PDF" : "Más información"}</span>
+          </button>
+          {aviso.categoria === "urgente" && (
+            <button
+              onClick={handleConfirmarLectura}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-error-container text-on-error-container hover:bg-error hover:text-on-error transition-colors text-label-md font-inter font-semibold"
+            >
+              <CheckCheck className="w-[18px] h-[18px]" />
+              <span>Confirmar lectura</span>
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <button
             aria-label="Compartir"

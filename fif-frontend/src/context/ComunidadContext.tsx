@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
 import {
   POSTS_COMUNIDAD_INICIALES,
   type ComentarioComunidad,
@@ -8,6 +8,13 @@ import {
   type RespuestaComentario,
 } from "@/data/comunidad";
 import { usePerfil } from "@/context/PerfilContext";
+import {
+  getPostsComunidad,
+  votarPublicacion,
+  createComentario,
+  votarComentario,
+  deleteComentario,
+} from "@/services/api";
 
 interface ComunidadContextValue {
   posts: PostComunidad[];
@@ -31,6 +38,18 @@ const ComunidadContext = createContext<ComunidadContextValue | null>(null);
 export function ComunidadProvider({ children }: { children: ReactNode }) {
   const { perfil } = usePerfil();
   const [posts, setPosts] = useState<PostComunidad[]>(POSTS_COMUNIDAD_INICIALES);
+
+  useEffect(() => {
+    getPostsComunidad()
+      .then((data) => {
+        if (data.length > 0) {
+          setPosts(data);
+        }
+      })
+      .catch((err) => {
+        console.error("Error al cargar publicaciones de la comunidad:", err);
+      });
+  }, []);
 
   const autorActual = useMemo(
     () => ({
@@ -56,6 +75,10 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
     (postId: string) => {
       const activo = !posts.find((p) => p.id === postId)?.fuegoActivo;
       actualizarPost(postId, (p) => ({ ...p, fuegoActivo: activo, fuegos: Math.max(0, p.fuegos + (activo ? 1 : -1)) }));
+      const numId = Number(postId);
+      if (!Number.isNaN(numId)) {
+        votarPublicacion(numId, activo ? 1 : -1).catch(() => {});
+      }
       return activo;
     },
     [posts, actualizarPost]
@@ -88,6 +111,17 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
         respuestas: [],
       };
       actualizarComentarios(postId, (lista) => [...lista, nuevo]);
+
+      const numPostId = Number(postId);
+      if (!Number.isNaN(numPostId)) {
+        createComentario({ publicacionId: numPostId, contenido: limpio })
+          .then((backendComentario) => {
+            actualizarComentarios(postId, (lista) =>
+              lista.map((c) => (c.id === nuevo.id ? { ...c, id: String(backendComentario.id) } : c))
+            );
+          })
+          .catch(() => {});
+      }
     },
     [actualizarComentarios, autorActual]
   );
@@ -130,6 +164,10 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
       const indice = lista.findIndex((c) => c.id === comentarioId);
       if (indice === -1) return null;
       actualizarComentarios(postId, (actual) => actual.filter((c) => c.id !== comentarioId));
+      const numComentarioId = Number(comentarioId);
+      if (!Number.isNaN(numComentarioId)) {
+        deleteComentario(numComentarioId).catch(() => {});
+      }
       return { comentario: lista[indice], indice };
     },
     [posts, actualizarComentarios]
@@ -164,6 +202,10 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
           return { ...c, respuestas: c.respuestas.map((r) => (r.id === respuestaId ? aplicar(r) : r)) };
         })
       );
+      const numComentarioId = Number(comentarioId);
+      if (!Number.isNaN(numComentarioId) && !respuestaId) {
+        votarComentario(numComentarioId, liked ? 1 : -1).catch(() => {});
+      }
       return liked;
     },
     [posts, actualizarComentarios]

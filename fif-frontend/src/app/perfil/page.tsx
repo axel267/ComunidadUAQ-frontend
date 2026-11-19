@@ -98,6 +98,7 @@ export default function PerfilPage() {
   const seleccionarEntrada = (entrada: EntradaMenu) => {
     if (entrada.id === "avisos") return abrirNotificaciones();
     if (entrada.id === "seguridad") return router.push("/perfil/ajustes#seguridad");
+    if (entrada.id === "tramites" || entrada.id === "ayuda") return router.push("/tramites");
     proximamente(entrada.titulo);
   };
 
