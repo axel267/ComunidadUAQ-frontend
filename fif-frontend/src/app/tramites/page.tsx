@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   BookOpen,
   ChevronDown,
@@ -9,17 +8,46 @@ import {
   FileCheck2,
   GraduationCap,
   Layers,
+  Plus,
   Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
-import { getGuiasTramites, type GuiaTramite } from "@/services/api";
+import {
+  getGuiasTramites,
+  createGuiaTramite,
+  deleteGuiaTramite,
+  type GuiaTramite,
+} from "@/services/api";
+import { getStoredSession } from "@/services/auth";
+import { useAppToast } from "@/context/ToastContext";
+
+interface PasoForm {
+  tituloPaso: string;
+  descripcionDetallada: string;
+}
 
 export default function TramitesPage() {
+  const showToast = useAppToast();
+  const session = getStoredSession();
+  const esAdmin = session?.user?.rol === "Administrador" || session?.user?.rolId === 1;
+
   const [guias, setGuias] = useState<GuiaTramite[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [guiaExpandida, setGuiaExpandida] = useState<number | null>(null);
+
+  // Estado para crear nueva guía (Admin)
+  const [modalCrear, setModalCrear] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [facultadId, setFacultadId] = useState(1);
+  const [pasos, setPasos] = useState<PasoForm[]>([
+    { tituloPaso: "", descripcionDetallada: "" },
+  ]);
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     getGuiasTramites()
@@ -44,19 +72,93 @@ export default function TramitesPage() {
     setGuiaExpandida((actual) => (actual === id ? null : id));
   };
 
+  const handleEliminarGuia = async (id: number) => {
+    try {
+      await deleteGuiaTramite(id);
+      setGuias((prev) => prev.filter((g) => g.id !== id));
+      showToast("Guía de trámite eliminada con éxito", { tipo: "eliminado" });
+    } catch {
+      showToast("Error al eliminar la guía de trámite", { tipo: "error" });
+    }
+  };
+
+  const agregarPaso = () => {
+    setPasos((prev) => [...prev, { tituloPaso: "", descripcionDetallada: "" }]);
+  };
+
+  const quitarPaso = (index: number) => {
+    setPasos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const actualizarPaso = (index: number, campo: keyof PasoForm, valor: string) => {
+    setPasos((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, [campo]: valor } : p))
+    );
+  };
+
+  const handleCrearGuia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) {
+      showToast("El título del trámite es obligatorio", { tipo: "advertencia" });
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const pasosValidos = pasos
+        .filter((p) => p.tituloPaso.trim() || p.descripcionDetallada.trim())
+        .map((p, idx) => ({
+          ordenPaso: idx + 1,
+          tituloPaso: p.tituloPaso.trim() || `Paso ${idx + 1}`,
+          descripcionDetallada: p.descripcionDetallada.trim(),
+        }));
+
+      const nueva = await createGuiaTramite({
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim(),
+        facultadId: Number(facultadId),
+        pasos: pasosValidos,
+      });
+
+      setGuias((prev) => [nueva, ...prev]);
+      setGuiaExpandida(nueva.id);
+      setModalCrear(false);
+      setTitulo("");
+      setDescripcion("");
+      setPasos([{ tituloPaso: "", descripcionDetallada: "" }]);
+      showToast("Guía de trámite creada exitosamente", { tipo: "exito" });
+    } catch (err: any) {
+      showToast(err?.message || "Error al crear la guía", { tipo: "error" });
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   return (
     <div className="flex flex-col relative w-full min-h-screen bg-surface">
       <AppHeader subtitle="Trámites" />
 
       <main className="flex flex-col w-full max-w-4xl mx-auto pt-20 pb-28 px-screen-margin-mobile gap-space-md">
-        <header className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-primary" />
-            <h1 className="text-headline-md font-bold text-on-surface">Guías de Trámites</h1>
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-6 h-6 text-primary" />
+              <h1 className="text-headline-md font-bold text-on-surface">Guías de Trámites</h1>
+            </div>
+            <p className="text-body-md text-on-surface-variant">
+              Requisitos y paso a paso oficial de titulación, servicio social y trámites escolares.
+            </p>
           </div>
-          <p className="text-body-md text-on-surface-variant">
-            Consulta los requisitos y el paso a paso oficial de titulación, servicio social y trámites escolares.
-          </p>
+
+          {esAdmin && (
+            <button
+              onClick={() => setModalCrear(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-label-md font-semibold hover:bg-primary/90 transition-all shadow-sm shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Guía (Admin)</span>
+            </button>
+          )}
         </header>
 
         <div className="relative w-full">
@@ -94,10 +196,9 @@ export default function TramitesPage() {
                   key={guia.id}
                   className="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden transition-all"
                 >
-                  <button
-                    type="button"
+                  <div
                     onClick={() => toggleGuia(guia.id)}
-                    className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 hover:bg-surface-container-low/40 transition-colors"
+                    className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 hover:bg-surface-container-low/40 transition-colors cursor-pointer"
                   >
                     <div className="flex flex-col gap-2 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -119,10 +220,25 @@ export default function TramitesPage() {
                       </p>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-surface-container shrink-0 text-secondary mt-1">
-                      {estaAbierta ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    <div className="flex items-center gap-2 shrink-0 mt-1">
+                      {esAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEliminarGuia(guia.id);
+                          }}
+                          className="p-2 rounded-lg bg-error-container text-on-error-container hover:bg-error hover:text-on-error transition-colors"
+                          title="Eliminar trámite (Admin)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      <div className="p-2 rounded-lg bg-surface-container text-secondary">
+                        {estaAbierta ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </div>
                     </div>
-                  </button>
+                  </div>
 
                   {estaAbierta && (
                     <div className="px-5 pb-6 sm:px-6 pt-2 border-t border-outline-variant/40 flex flex-col gap-4 bg-surface-container-low/20">
@@ -167,6 +283,131 @@ export default function TramitesPage() {
             })}
         </div>
       </main>
+
+      {/* Modal Crear Guía (Admin) */}
+      {modalCrear && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-2xl border border-outline-variant max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+              <h2 className="text-title-lg font-bold text-on-surface">Nueva Guía de Trámite</h2>
+              <button
+                onClick={() => setModalCrear(false)}
+                className="p-1 rounded-lg text-secondary hover:text-on-surface"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearGuia} className="p-6 overflow-y-auto flex flex-col gap-4">
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Título del trámite *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ej. Proceso de Titulación por Diplomado"
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Descripción general
+                </label>
+                <textarea
+                  rows={2}
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  placeholder="Detalles y requisitos previos..."
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-label-md font-semibold text-on-surface block mb-1">
+                  Facultad
+                </label>
+                <select
+                  value={facultadId}
+                  onChange={(e) => setFacultadId(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value={1}>Facultad de Informática (FIF)</option>
+                  <option value={2}>Facultad de Ingeniería (FI)</option>
+                </select>
+              </div>
+
+              <div className="pt-2 border-t border-outline-variant flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-label-md font-bold text-on-surface">Pasos del proceso</span>
+                  <button
+                    type="button"
+                    onClick={agregarPaso}
+                    className="text-label-sm font-semibold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Agregar paso</span>
+                  </button>
+                </div>
+
+                {pasos.map((paso, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant flex flex-col gap-2 relative"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-label-sm font-bold text-primary">Paso {idx + 1}</span>
+                      {pasos.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => quitarPaso(idx)}
+                          className="text-error hover:opacity-80 p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={paso.tituloPaso}
+                      onChange={(e) => actualizarPaso(idx, "tituloPaso", e.target.value)}
+                      placeholder="Título del paso (ej. Pago de arancel)"
+                      className="w-full px-3 py-1.5 bg-surface rounded-lg border border-outline-variant text-body-sm text-on-surface"
+                    />
+                    <textarea
+                      rows={2}
+                      value={paso.descripcionDetallada}
+                      onChange={(e) => actualizarPaso(idx, "descripcionDetallada", e.target.value)}
+                      placeholder="Instrucciones detalladas del paso..."
+                      className="w-full px-3 py-1.5 bg-surface rounded-lg border border-outline-variant text-body-sm text-on-surface"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => setModalCrear(false)}
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-secondary font-medium hover:bg-surface-container"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardando}
+                  className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {guardando ? "Guardando..." : "Guardar trámite"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <AppBottomNav />
     </div>
