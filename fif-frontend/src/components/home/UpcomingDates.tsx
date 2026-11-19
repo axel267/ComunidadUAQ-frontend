@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Plus, Trash2, X } from "lucide-react";
+import { CalendarDays, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   getFechasClave,
   createFechaClave,
+  updateFechaClave,
   deleteFechaClave,
   type FechaClaveBackend,
 } from "@/services/api";
@@ -17,7 +18,6 @@ const MESES_ES = [
 ];
 
 function formatearFecha(fechaStr: string) {
-  // Asegurar formato YYYY-MM-DD sin desajustes por zona horaria
   const partes = fechaStr.split("T")[0].split("-");
   if (partes.length >= 3) {
     const anio = partes[0];
@@ -72,8 +72,9 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
   const [fechas, setFechas] = useState<FechaClaveBackend[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  // Modal para agregar fecha (Admin)
+  // Modal para agregar / editar fecha (Admin)
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [fechaEnEdicion, setFechaEnEdicion] = useState<FechaClaveBackend | null>(null);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaInput, setFechaInput] = useState("");
@@ -97,6 +98,24 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
     cargarFechas();
   }, []);
 
+  const abrirModalAgregar = () => {
+    setFechaEnEdicion(null);
+    setTitulo("");
+    setDescripcion("");
+    setFechaInput("");
+    setEtiqueta("General");
+    setModalAbierto(true);
+  };
+
+  const abrirModalEditar = (item: FechaClaveBackend) => {
+    setFechaEnEdicion(item);
+    setTitulo(item.titulo);
+    setDescripcion(item.descripcion || "");
+    setFechaInput(item.fecha.split("T")[0]);
+    setEtiqueta(item.etiqueta || "General");
+    setModalAbierto(true);
+  };
+
   const handleEliminar = async (id: number) => {
     try {
       await deleteFechaClave(id);
@@ -116,20 +135,40 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
 
     setGuardando(true);
     try {
-      const nueva = await createFechaClave({
-        titulo: titulo.trim(),
-        descripcion: descripcion.trim(),
-        fecha: fechaInput,
-        etiqueta: etiqueta.trim() || "General",
-      });
+      if (fechaEnEdicion) {
+        const actualizada = await updateFechaClave(fechaEnEdicion.id, {
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim(),
+          fecha: fechaInput,
+          etiqueta: etiqueta.trim() || "General",
+        });
 
-      setFechas((prev) => [...prev, nueva].sort((a, b) => a.fecha.localeCompare(b.fecha)));
+        setFechas((prev) =>
+          prev
+            .map((f) => (f.id === fechaEnEdicion.id ? actualizada : f))
+            .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        );
+        showToast("Fecha clave actualizada con éxito", { tipo: "exito" });
+      } else {
+        const nueva = await createFechaClave({
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim(),
+          fecha: fechaInput,
+          etiqueta: etiqueta.trim() || "General",
+        });
+
+        setFechas((prev) =>
+          [...prev, nueva].sort((a, b) => a.fecha.localeCompare(b.fecha))
+        );
+        showToast("Fecha clave agregada al calendario oficial", { tipo: "exito" });
+      }
+
       setModalAbierto(false);
+      setFechaEnEdicion(null);
       setTitulo("");
       setDescripcion("");
       setFechaInput("");
       setEtiqueta("General");
-      showToast("Fecha clave agregada al calendario oficial", { tipo: "exito" });
     } catch (err: any) {
       showToast(err?.message || "Error al guardar fecha", { tipo: "error" });
     } finally {
@@ -147,7 +186,7 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
         <div className="flex items-center gap-3">
           {esAdmin && (
             <button
-              onClick={() => setModalAbierto(true)}
+              onClick={abrirModalAgregar}
               className="flex items-center gap-1 text-label-sm font-semibold text-primary hover:underline"
             >
               <Plus className="w-4 h-4" />
@@ -203,14 +242,24 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
                           {item.etiqueta}
                         </span>
                         {esAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => handleEliminar(item.id)}
-                            className="p-1 rounded text-secondary hover:text-error transition-colors"
-                            title="Eliminar fecha (Admin)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => abrirModalEditar(item)}
+                              className="p-1 rounded text-secondary hover:text-primary transition-colors"
+                              title="Editar fecha (Admin)"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEliminar(item.id)}
+                              className="p-1 rounded text-secondary hover:text-error transition-colors"
+                              title="Eliminar fecha (Admin)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -227,13 +276,13 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
           })}
       </div>
 
-      {/* Modal Agregar Fecha Clave (Admin) */}
+      {/* Modal Agregar / Editar Fecha Clave (Admin) */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="relative w-full max-w-md bg-surface rounded-2xl shadow-2xl border border-outline-variant flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-outline-variant flex items-center justify-between">
               <h3 className="text-title-md font-bold text-on-surface">
-                Agregar Fecha Clave Oficial
+                {fechaEnEdicion ? "Editar Fecha Clave" : "Agregar Fecha Clave Oficial"}
               </h3>
               <button
                 onClick={() => setModalAbierto(false)}
@@ -315,7 +364,11 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
                   disabled={guardando}
                   className="px-4 py-2 rounded-xl bg-primary text-on-primary text-label-md font-semibold hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {guardando ? "Guardando..." : "Guardar fecha"}
+                  {guardando
+                    ? "Guardando..."
+                    : fechaEnEdicion
+                    ? "Guardar cambios"
+                    : "Guardar fecha"}
                 </button>
               </div>
             </form>

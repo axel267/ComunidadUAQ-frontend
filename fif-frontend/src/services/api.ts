@@ -174,6 +174,22 @@ export const createFechaClave = async (
   return res.json();
 };
 
+export const updateFechaClave = async (
+  id: number,
+  data: Partial<CreateFechaClavePayload>,
+): Promise<FechaClaveBackend> => {
+  const res = await fetch(`${API_URL}/fechas-clave/${id}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || 'Error al actualizar la fecha clave');
+  }
+  return res.json();
+};
+
 export const deleteFechaClave = async (id: number): Promise<void> => {
   const res = await fetch(`${API_URL}/fechas-clave/${id}`, {
     method: 'DELETE',
