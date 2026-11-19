@@ -105,6 +105,36 @@ export const deleteGuiaTramite = async (id: number): Promise<void> => {
   if (!res.ok) throw new Error("Error al eliminar la guía de trámite");
 };
 
+export interface UpdateGuiaTramitePayload {
+  titulo?: string;
+  descripcion?: string;
+  facultadId?: number;
+  imagenUrl?: string;
+  pasos?: {
+    id?: number;
+    ordenPaso?: number;
+    tituloPaso?: string;
+    descripcionDetallada?: string;
+    imagenIlustrativaUrl?: string;
+  }[];
+}
+
+export const updateGuiaTramite = async (
+  id: number,
+  data: UpdateGuiaTramitePayload,
+): Promise<GuiaTramite> => {
+  const res = await fetch(`${API_URL}/guias-tramites/${id}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || "Error al actualizar la guía de trámite");
+  }
+  return res.json();
+};
+
 // Modelo que devuelve NestJS desde PostgreSQL
 export interface AvisoBackend {
   id: number;

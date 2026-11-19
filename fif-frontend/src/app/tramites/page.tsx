@@ -8,6 +8,7 @@ import {
   FileCheck2,
   GraduationCap,
   Layers,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -18,6 +19,7 @@ import { AppBottomNav } from "@/components/AppBottomNav";
 import {
   getGuiasTramites,
   createGuiaTramite,
+  updateGuiaTramite,
   deleteGuiaTramite,
   type GuiaTramite,
 } from "@/services/api";
@@ -39,8 +41,9 @@ export default function TramitesPage() {
   const [busqueda, setBusqueda] = useState("");
   const [guiaExpandida, setGuiaExpandida] = useState<number | null>(null);
 
-  // Estado para crear nueva guía (Admin)
-  const [modalCrear, setModalCrear] = useState(false);
+  // Estado para crear / editar guía (Admin)
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [guiaEnEdicion, setGuiaEnEdicion] = useState<GuiaTramite | null>(null);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [facultadId, setFacultadId] = useState(1);
@@ -72,6 +75,37 @@ export default function TramitesPage() {
     setGuiaExpandida((actual) => (actual === id ? null : id));
   };
 
+  const abrirModalCrear = () => {
+    setGuiaEnEdicion(null);
+    setTitulo("");
+    setDescripcion("");
+    setFacultadId(1);
+    setPasos([{ tituloPaso: "", descripcionDetallada: "" }]);
+    setModalAbierto(true);
+  };
+
+  const abrirModalEditar = (guia: GuiaTramite) => {
+    setGuiaEnEdicion(guia);
+    setTitulo(guia.titulo);
+    setDescripcion(guia.descripcion || "");
+    setFacultadId(guia.facultadId || 1);
+
+    const pasosExistentes = (guia.pasos || [])
+      .slice()
+      .sort((a, b) => a.ordenPaso - b.ordenPaso)
+      .map((p) => ({
+        tituloPaso: p.tituloPaso || "",
+        descripcionDetallada: p.descripcionDetallada || "",
+      }));
+
+    setPasos(
+      pasosExistentes.length > 0
+        ? pasosExistentes
+        : [{ tituloPaso: "", descripcionDetallada: "" }]
+    );
+    setModalAbierto(true);
+  };
+
   const handleEliminarGuia = async (id: number) => {
     try {
       await deleteGuiaTramite(id);
@@ -96,7 +130,7 @@ export default function TramitesPage() {
     );
   };
 
-  const handleCrearGuia = async (e: React.FormEvent) => {
+  const handleGuardarGuia = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim()) {
       showToast("El título del trámite es obligatorio", { tipo: "advertencia" });
@@ -113,22 +147,38 @@ export default function TramitesPage() {
           descripcionDetallada: p.descripcionDetallada.trim(),
         }));
 
-      const nueva = await createGuiaTramite({
-        titulo: titulo.trim(),
-        descripcion: descripcion.trim(),
-        facultadId: Number(facultadId),
-        pasos: pasosValidos,
-      });
+      if (guiaEnEdicion) {
+        const actualizada = await updateGuiaTramite(guiaEnEdicion.id, {
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim(),
+          facultadId: Number(facultadId),
+          pasos: pasosValidos,
+        });
 
-      setGuias((prev) => [nueva, ...prev]);
-      setGuiaExpandida(nueva.id);
-      setModalCrear(false);
+        setGuias((prev) =>
+          prev.map((g) => (g.id === guiaEnEdicion.id ? actualizada : g))
+        );
+        showToast("Guía de trámite actualizada con éxito", { tipo: "exito" });
+      } else {
+        const nueva = await createGuiaTramite({
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim(),
+          facultadId: Number(facultadId),
+          pasos: pasosValidos,
+        });
+
+        setGuias((prev) => [nueva, ...prev]);
+        setGuiaExpandida(nueva.id);
+        showToast("Guía de trámite creada exitosamente", { tipo: "exito" });
+      }
+
+      setModalAbierto(false);
+      setGuiaEnEdicion(null);
       setTitulo("");
       setDescripcion("");
       setPasos([{ tituloPaso: "", descripcionDetallada: "" }]);
-      showToast("Guía de trámite creada exitosamente", { tipo: "exito" });
     } catch (err: any) {
-      showToast(err?.message || "Error al crear la guía", { tipo: "error" });
+      showToast(err?.message || "Error al guardar la guía", { tipo: "error" });
     } finally {
       setGuardando(false);
     }
@@ -152,7 +202,7 @@ export default function TramitesPage() {
 
           {esAdmin && (
             <button
-              onClick={() => setModalCrear(true)}
+              onClick={abrirModalCrear}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-label-md font-semibold hover:bg-primary/90 transition-all shadow-sm shrink-0 self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
@@ -222,17 +272,30 @@ export default function TramitesPage() {
 
                     <div className="flex items-center gap-2 shrink-0 mt-1">
                       {esAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEliminarGuia(guia.id);
-                          }}
-                          className="p-2 rounded-lg bg-error-container text-on-error-container hover:bg-error hover:text-on-error transition-colors"
-                          title="Eliminar trámite (Admin)"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirModalEditar(guia);
+                            }}
+                            className="p-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors"
+                            title="Editar trámite (Admin)"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEliminarGuia(guia.id);
+                            }}
+                            className="p-2 rounded-lg bg-error-container text-on-error-container hover:bg-error hover:text-on-error transition-colors"
+                            title="Eliminar trámite (Admin)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                       <div className="p-2 rounded-lg bg-surface-container text-secondary">
                         {estaAbierta ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -284,21 +347,23 @@ export default function TramitesPage() {
         </div>
       </main>
 
-      {/* Modal Crear Guía (Admin) */}
-      {modalCrear && (
+      {/* Modal Crear / Editar Guía (Admin) */}
+      {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-2xl border border-outline-variant max-h-[90vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
-              <h2 className="text-title-lg font-bold text-on-surface">Nueva Guía de Trámite</h2>
+              <h2 className="text-title-lg font-bold text-on-surface">
+                {guiaEnEdicion ? "Editar Guía de Trámite" : "Nueva Guía de Trámite"}
+              </h2>
               <button
-                onClick={() => setModalCrear(false)}
+                onClick={() => setModalAbierto(false)}
                 className="p-1 rounded-lg text-secondary hover:text-on-surface"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCrearGuia} className="p-6 overflow-y-auto flex flex-col gap-4">
+            <form onSubmit={handleGuardarGuia} className="p-6 overflow-y-auto flex flex-col gap-4">
               <div>
                 <label className="text-label-md font-semibold text-on-surface block mb-1">
                   Título del trámite *
@@ -391,7 +456,7 @@ export default function TramitesPage() {
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
                 <button
                   type="button"
-                  onClick={() => setModalCrear(false)}
+                  onClick={() => setModalAbierto(false)}
                   className="px-4 py-2.5 rounded-xl border border-outline-variant text-secondary font-medium hover:bg-surface-container"
                 >
                   Cancelar
@@ -401,7 +466,11 @@ export default function TramitesPage() {
                   disabled={guardando}
                   className="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {guardando ? "Guardando..." : "Guardar trámite"}
+                  {guardando
+                    ? "Guardando..."
+                    : guiaEnEdicion
+                    ? "Guardar cambios"
+                    : "Guardar trámite"}
                 </button>
               </div>
             </form>
