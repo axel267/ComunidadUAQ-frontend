@@ -4,7 +4,19 @@ import type { PostComunidad, ComentarioComunidad, FiltroComunidad } from "@/data
 import { calcularSiglas } from "@/data/perfil";
 import { getAccessToken, getStoredSession } from "./auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const getApiBaseUrl = () => {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return `http://${window.location.hostname}:8000`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+};
+
+const API_URL = getApiBaseUrl();
 
 function getAuthHeaders(): HeadersInit {
   const token = getAccessToken();
