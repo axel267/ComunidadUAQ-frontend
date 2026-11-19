@@ -135,6 +135,53 @@ export const updateGuiaTramite = async (
   return res.json();
 };
 
+export interface FechaClaveBackend {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  fecha: string;
+  etiqueta: string;
+  facultadId?: number;
+  facultad?: Facultade;
+}
+
+export const getFechasClave = async (): Promise<FechaClaveBackend[]> => {
+  const res = await fetch(`${API_URL}/fechas-clave`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Error al obtener fechas clave');
+  return res.json();
+};
+
+export interface CreateFechaClavePayload {
+  titulo: string;
+  descripcion?: string;
+  fecha: string;
+  etiqueta?: string;
+  facultadId?: number;
+}
+
+export const createFechaClave = async (
+  data: CreateFechaClavePayload,
+): Promise<FechaClaveBackend> => {
+  const res = await fetch(`${API_URL}/fechas-clave`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || 'Error al crear la fecha clave');
+  }
+  return res.json();
+};
+
+export const deleteFechaClave = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/fechas-clave/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error('Error al eliminar fecha clave');
+};
+
 // Modelo que devuelve NestJS desde PostgreSQL
 export interface AvisoBackend {
   id: number;
