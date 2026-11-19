@@ -11,6 +11,7 @@ import { usePerfil } from "@/context/PerfilContext";
 import {
   getPostsComunidad,
   votarPublicacion,
+  deletePublicacion,
   createComentario,
   votarComentario,
   deleteComentario,
@@ -18,6 +19,7 @@ import {
 
 interface ComunidadContextValue {
   posts: PostComunidad[];
+  eliminarPost: (postId: string) => void;
   /** Devuelve true si el fuego quedó activo. */
   alternarFuego: (postId: string) => boolean;
   /** Devuelve true si el equipo quedó inscrito. */
@@ -173,6 +175,16 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
     [posts, actualizarComentarios]
   );
 
+  const eliminarPost = useCallback((postId: string) => {
+    const numId = Number(postId);
+    if (!Number.isNaN(numId)) {
+      deletePublicacion(numId).catch((err) => {
+        console.error("Error al eliminar post en el backend:", err);
+      });
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   const restaurarComentario = useCallback(
     (postId: string, comentario: ComentarioComunidad, indice: number) => {
       actualizarComentarios(postId, (lista) => {
@@ -214,6 +226,7 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
   const valor = useMemo(
     () => ({
       posts,
+      eliminarPost,
       alternarFuego,
       alternarInscripcion,
       comentar,
@@ -223,7 +236,7 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
       restaurarComentario,
       alternarLike,
     }),
-    [posts, alternarFuego, alternarInscripcion, comentar, responder, editarComentario, eliminarComentario, restaurarComentario, alternarLike]
+    [posts, eliminarPost, alternarFuego, alternarInscripcion, comentar, responder, editarComentario, eliminarComentario, restaurarComentario, alternarLike]
   );
 
   return <ComunidadContext.Provider value={valor}>{children}</ComunidadContext.Provider>;

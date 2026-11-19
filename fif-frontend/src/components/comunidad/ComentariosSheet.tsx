@@ -29,6 +29,7 @@ import {
 import { useComunidad } from "@/context/ComunidadContext";
 import { useAppToast } from "@/context/ToastContext";
 import { usePerfil } from "@/context/PerfilContext";
+import { getStoredSession } from "@/services/auth";
 import {
   contarComentarios,
   MOTIVOS_REPORTE,
@@ -92,6 +93,8 @@ interface ComentariosSheetProps {
 export function ComentariosSheet({ post, onClose }: ComentariosSheetProps) {
   const showToast = useAppToast();
   const { perfil } = usePerfil();
+  const session = getStoredSession();
+  const esAdmin = session?.user?.rol === "Administrador" || session?.user?.rolId === 1;
   const { comentar, responder, editarComentario, eliminarComentario, restaurarComentario, alternarLike } = useComunidad();
 
   const [orden, setOrden] = useState<Orden>("Más relevantes");
@@ -382,32 +385,33 @@ export function ComentariosSheet({ post, onClose }: ComentariosSheetProps) {
                           </button>
                           {menuComentario === c.id && (
                             <div role="menu" className="absolute right-0 top-9 w-48 bg-surface-container-lowest rounded-xl shadow-xl z-30 py-1.5 flex flex-col">
-                              {c.esPropio ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    onClick={() => {
-                                      setMenuComentario(null);
-                                      setEditando({ id: c.id, texto: c.texto });
-                                    }}
-                                    className="px-4 py-2.5 text-left text-label-md text-on-surface hover:bg-surface-container flex items-center gap-2"
-                                  >
-                                    <Pencil className="w-4 h-4 text-primary" /> Editar comentario
-                                  </button>
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    onClick={() => {
-                                      setMenuComentario(null);
-                                      setEliminando(c);
-                                    }}
-                                    className="px-4 py-2.5 text-left text-label-md text-error hover:bg-error-container/20 flex items-center gap-2"
-                                  >
-                                    <Trash2 className="w-4 h-4" /> Eliminar comentario
-                                  </button>
-                                </>
-                              ) : (
+                              {c.esPropio && (
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setMenuComentario(null);
+                                    setEditando({ id: c.id, texto: c.texto });
+                                  }}
+                                  className="px-4 py-2.5 text-left text-label-md text-on-surface hover:bg-surface-container flex items-center gap-2"
+                                >
+                                  <Pencil className="w-4 h-4 text-primary" /> Editar comentario
+                                </button>
+                              )}
+                              {(c.esPropio || esAdmin) && (
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setMenuComentario(null);
+                                    setEliminando(c);
+                                  }}
+                                  className="px-4 py-2.5 text-left text-label-md text-error hover:bg-error-container/20 flex items-center gap-2 font-medium"
+                                >
+                                  <Trash2 className="w-4 h-4" /> Eliminar {esAdmin && !c.esPropio ? "(Admin)" : "comentario"}
+                                </button>
+                              )}
+                              {!c.esPropio && !esAdmin && (
                                 <button
                                   type="button"
                                   role="menuitem"

@@ -20,12 +20,14 @@ import {
   Trophy,
   UserCheck,
   UserPlus,
+  Trash2,
   X,
 } from "lucide-react";
 import { useComunidad } from "@/context/ComunidadContext";
 import { useGuardados } from "@/context/GuardadosContext";
 import { useAppToast } from "@/context/ToastContext";
 import { contarComentarios, type PostComunidad } from "@/data/comunidad";
+import { getStoredSession } from "@/services/auth";
 
 interface PostComunidadCardProps {
   post: PostComunidad;
@@ -64,7 +66,9 @@ function NombreAutor({ post }: { post: PostComunidad }) {
 
 export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCardProps) {
   const showToast = useAppToast();
-  const { alternarFuego, alternarInscripcion, comentar } = useComunidad();
+  const session = getStoredSession();
+  const esAdmin = session?.user?.rol === "Administrador" || session?.user?.rolId === 1;
+  const { alternarFuego, alternarInscripcion, comentar, eliminarPost } = useComunidad();
   const { estaGuardado, alternar } = useGuardados();
   const [respuesta, setRespuesta] = useState("");
   const [fotoIdx, setFotoIdx] = useState<number | null>(null);
@@ -400,6 +404,23 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
                     <MessageCircle className="w-4 h-4 text-primary" />
                     Ver discusión ({totalComentarios})
                   </button>
+
+                  {esAdmin && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuAbierto(false);
+                        eliminarPost(post.id);
+                        showToast("Publicación eliminada por moderación", { tipo: "eliminado" });
+                      }}
+                      className="px-4 py-2.5 text-left text-label-md text-error hover:bg-error-container/20 flex items-center gap-2 font-medium"
+                    >
+                      <Trash2 className="w-4 h-4 text-error" />
+                      Eliminar publicación (Admin)
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     role="menuitem"
