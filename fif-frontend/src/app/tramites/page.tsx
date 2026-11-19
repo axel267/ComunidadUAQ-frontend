@@ -35,8 +35,7 @@ interface PasoForm {
 
 export default function TramitesPage() {
   const showToast = useAppToast();
-  const session = getStoredSession();
-  const esAdmin = session?.user?.rol === "Administrador" || session?.user?.rolId === 1;
+  const [esAdmin, setEsAdmin] = useState(false);
 
   const [guias, setGuias] = useState<GuiaTramite[]>([]);
   const [facultades, setFacultades] = useState<Facultade[]>([]);
@@ -57,6 +56,11 @@ export default function TramitesPage() {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
+    const session = getStoredSession();
+    if (session?.user?.rol === "Administrador" || session?.user?.rolId === 1) {
+      setEsAdmin(true);
+    }
+
     Promise.all([getGuiasTramites(), getFacultades().catch(() => [])])
       .then(([datosGuias, datosFacultades]) => {
         setGuias(datosGuias);

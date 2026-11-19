@@ -67,8 +67,7 @@ function obtenerEstilosEtiqueta(etiqueta: string) {
 
 export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }) {
   const showToast = useAppToast();
-  const session = getStoredSession();
-  const esAdmin = session?.user?.rol === "Administrador" || session?.user?.rolId === 1;
+  const [esAdmin, setEsAdmin] = useState(false);
 
   const [fechas, setFechas] = useState<FechaClaveBackend[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -91,6 +90,10 @@ export function UpcomingDates({ onVerTodoClick }: { onVerTodoClick: () => void }
   };
 
   useEffect(() => {
+    const session = getStoredSession();
+    if (session?.user?.rol === "Administrador" || session?.user?.rolId === 1) {
+      setEsAdmin(true);
+    }
     cargarFechas();
   }, []);
 
