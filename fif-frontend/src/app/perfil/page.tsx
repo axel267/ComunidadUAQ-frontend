@@ -28,6 +28,7 @@ import { usePerfil } from "@/context/PerfilContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
 import { AVISOS_MOCK } from "@/data/avisos";
+import { logout } from "@/services/auth";
 import {
   CUENTA_SEGURIDAD,
   EVENTOS_REGISTRADOS_MOCK,
@@ -103,8 +104,8 @@ export default function PerfilPage() {
   };
 
   const cerrarSesion = () => {
-    // TODO: invalidar la sesión en el backend y limpiar el token cuando auth.ts la persista.
-    router.push("/login");
+    logout();
+    window.location.href = "/login";
   };
 
   const pestanas: { id: Pestana; label: string; icono: LucideIcon; total: number }[] = [
