@@ -48,14 +48,13 @@ function formatearTamano(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function AdjuntoImagen({ archivo }: { archivo: File }) {
+function AdjuntoImagen({ archivo }: { archivo?: File | string | unknown }) {
   const url = useObjectUrl(archivo);
+  if (!url) return null;
   return (
     <div className="relative w-full h-44 rounded-xl overflow-hidden bg-surface-container shadow-sm">
-      {url && (
-        // eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), no aplica optimización
-        <img src={url} alt="Imagen adjunta a la publicación" className="w-full h-full object-cover" />
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="Imagen adjunta a la publicación" className="w-full h-full object-cover" />
     </div>
   );
 }

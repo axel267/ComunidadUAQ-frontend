@@ -52,9 +52,27 @@ export function usePublicaciones(autor: AutorPublicacion = AUTOR_MOCK) {
     try {
       const guardadas = localStorage.getItem(STORAGE_KEY);
       if (guardadas) {
-        setPublicaciones(JSON.parse(guardadas));
+        const parsed = JSON.parse(guardadas);
+        if (Array.isArray(parsed)) {
+          const limpias = parsed.map((p) => {
+            if (
+              p.adjunto?.tipo === "imagen" &&
+              p.adjunto.archivo &&
+              typeof p.adjunto.archivo !== "string" &&
+              !(p.adjunto.archivo instanceof Blob)
+            ) {
+              return { ...p, adjunto: undefined };
+            }
+            return p;
+          });
+          setPublicaciones(limpias);
+        }
       }
-    } catch {}
+    } catch {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+    }
 
     const session = getStoredSession();
     const userId = session?.user?.id ?? 2;
@@ -87,6 +105,28 @@ export function usePublicaciones(autor: AutorPublicacion = AUTOR_MOCK) {
         } catch {}
         return siguiente;
       });
+
+      if (datos.adjunto?.tipo === "imagen" && datos.adjunto.archivo instanceof File) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          setPublicaciones((prev) => {
+            const actualizada = prev.map((p) =>
+              p.id === temporal.id
+                ? {
+                    ...p,
+                    adjunto: { tipo: "imagen" as const, archivo: dataUrl as unknown as File },
+                  }
+                : p
+            );
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada));
+            } catch {}
+            return actualizada;
+          });
+        };
+        reader.readAsDataURL(datos.adjunto.archivo);
+      }
 
       createPublicacion({
         titulo: datos.texto.slice(0, 100),
