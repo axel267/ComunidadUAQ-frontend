@@ -94,21 +94,27 @@ export const logout = (): void => {
 };
 
 export interface ActivateAccountPayload {
-  expediente: string;
-  carrera: string;
+  nombre?: string;
+  expediente: string | number;
+  carrera?: string;
   email: string;
-  password: string;
+}
+
+export interface ActivateAccountResponse {
+  message: string;
+  temporaryPassword?: string;
+  user: AuthUser;
 }
 
 export const activateAccount = async (
   payload: ActivateAccountPayload
-): Promise<{ email: string }> => {
+): Promise<ActivateAccountResponse> => {
   const res = await fetch(`${API_URL}/auth/activate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  return parseJsonResponse(res, 'No se pudo validar el expediente. Verifica tus datos.');
+  return parseJsonResponse<ActivateAccountResponse>(res, 'No se pudo activar la cuenta. Verifica tus datos.');
 };
 
 export const verifyActivationCode = async (
