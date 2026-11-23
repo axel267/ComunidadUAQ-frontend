@@ -2,7 +2,7 @@ import { Banknote, Landmark, AlertTriangle, BookOpen } from "lucide-react";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 import type { PostComunidad, ComentarioComunidad, FiltroComunidad } from "@/data/comunidad";
 import { calcularSiglas } from "@/data/perfil";
-import { getAccessToken, getStoredSession } from "./auth";
+import { getAccessToken } from "./auth";
 
 export const getApiBaseUrl = (): string => {
   if (
@@ -280,30 +280,35 @@ export const getAvisos = async (): Promise<Aviso[]> => {
       titulo: item.titulo,
       descripcion: item.contenido,
       conImagen: Boolean(item.imagenesPortadaUrl),
+      imagenUrl: item.imagenesPortadaUrl ?? undefined,
     };
   });
 };
 
-export const getAvisosUrgentesPendientes = async (usuarioId?: number): Promise<AvisoBackend[]> => {
-  const query = usuarioId ? `?usuarioId=${usuarioId}` : "";
-  const res = await fetch(`${API_URL}/avisos/urgentes/pendientes${query}`, {
+export const getAvisosUrgentesPendientes = async (): Promise<AvisoBackend[]> => {
+  if (!getAccessToken()) {
+    throw new Error("Debes iniciar sesión para consultar las alertas pendientes.");
+  }
+  const res = await fetch(`${API_URL}/avisos/urgentes/pendientes`, {
     headers: getAuthHeaders(),
     cache: "no-store",
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message || "No se pudieron cargar las alertas pendientes.");
+  }
   return res.json();
 };
 
 export const confirmarLecturaAviso = async (
-  avisoId: number | string,
-  usuarioId?: number
+  avisoId: number | string
 ): Promise<{ message: string; yaLeido: boolean }> => {
-  const session = getStoredSession();
-  const uid = usuarioId ?? session?.user?.id ?? 2;
+  if (!getAccessToken()) {
+    throw new Error("Debes iniciar sesión para confirmar la lectura.");
+  }
   const res = await fetch(`${API_URL}/avisos/${avisoId}/leer`, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ usuarioId: uid }),
   });
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);

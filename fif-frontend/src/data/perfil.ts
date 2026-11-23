@@ -11,6 +11,7 @@ export const CAMPUSES_UAQ = [
 ] as const;
 
 export type CampusUAQ = (typeof CAMPUSES_UAQ)[number];
+export type CampusPerfil = CampusUAQ | "No definido";
 
 export const INTERESES_DISPONIBLES = [
   "#DesarrolloMóvil",
@@ -34,12 +35,12 @@ export interface PerfilEstudiante {
   expediente: string;
   estatus: string;
   carrera: string;
-  semestre: number;
+  semestre: string;
   facultad: string;
   facultadSigla: string;
   periodo: string;
   nivelEducativo: string;
-  campus: CampusUAQ;
+  campus: CampusPerfil;
   biografia: string;
   telefono: string;
   intereses: string[];
@@ -82,24 +83,24 @@ export function calcularSiglas(nombre: string): string {
   return `${partes[0][0]}${partes[1][0]}`.toUpperCase();
 }
 
-// Usuario de ejemplo hasta conectar la sesión real (ver services/auth.ts, que aún no guarda la sesión).
+// Valores iniciales hasta que el usuario complete su perfil.
 export const PERFIL_MOCK: PerfilEstudiante = {
-  nombre: "Sofía Morales M.",
-  nombreCredencial: "Sofía Morales M.",
-  siglas: "SM",
-  correoInstitucional: "smorales29@alumnos.uaq.mx",
-  expediente: "293810",
-  estatus: "Alumno Regular",
-  carrera: "Lic. en Ingeniería de Software",
-  semestre: 6,
-  facultad: "Facultad de Informática",
-  facultadSigla: "FIF",
-  periodo: "2025-A",
-  nivelEducativo: "Pregrado",
-  campus: "Campus Juriquilla",
-  biografia: "Estudiante de 6º semestre en FIF. Apasionada por desarrollo móvil, arquitectura limpia y comunidades tech en UAQ.",
-  telefono: "442 215 8490",
-  intereses: ["#DesarrolloMóvil", "#ClubGDG", "#Hackathon"],
+  nombre: "No definido",
+  nombreCredencial: "No definido",
+  siglas: "ND",
+  correoInstitucional: "No definido",
+  expediente: "No definido",
+  estatus: "No definido",
+  carrera: "No definido",
+  semestre: "No definido",
+  facultad: "No definido",
+  facultadSigla: "ND",
+  periodo: "No definido",
+  nivelEducativo: "No definido",
+  campus: "No definido",
+  biografia: "No definido",
+  telefono: "No definido",
+  intereses: [],
 };
 
 export const AJUSTES_INICIALES: AjustesCuenta = {

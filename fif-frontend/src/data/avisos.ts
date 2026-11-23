@@ -17,6 +17,7 @@ export interface Aviso {
   titulo: string;
   descripcion: string;
   conImagen?: boolean;
+  imagenUrl?: string;
   adjunto?: { nombre: string; tamano: string };
 }
 

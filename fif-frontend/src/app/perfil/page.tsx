@@ -173,7 +173,8 @@ export default function PerfilPage() {
               </span>
             </div>
             <p className="text-body-md text-on-surface-variant">
-              {perfil.carrera} <span className="text-outline-variant">•</span> {perfil.semestre}º Semestre
+              {perfil.carrera} <span className="text-outline-variant">•</span>{" "}
+              {perfil.semestre === "No definido" ? "Semestre no definido" : `${perfil.semestre}º Semestre`}
             </p>
             <p className="text-body-sm text-secondary flex items-center flex-wrap gap-1.5">
               <span>{perfil.facultad}</span>
@@ -187,9 +188,7 @@ export default function PerfilPage() {
                 </>
               )}
             </p>
-            {perfil.biografia && (
-              <p className="text-body-sm text-on-surface-variant pt-1 leading-relaxed">{perfil.biografia}</p>
-            )}
+            <p className="text-body-sm text-on-surface-variant pt-1 leading-relaxed">{perfil.biografia}</p>
             {perfil.intereses.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {perfil.intereses.map((tag) => (
@@ -201,6 +200,9 @@ export default function PerfilPage() {
                   </span>
                 ))}
               </div>
+            )}
+            {perfil.intereses.length === 0 && (
+              <p className="text-body-sm text-on-surface-variant">Intereses: No definido</p>
             )}
             <div className="pt-space-xs flex items-center flex-wrap gap-2">
               <button

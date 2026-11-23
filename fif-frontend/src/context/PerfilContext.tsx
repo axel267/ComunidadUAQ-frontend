@@ -2,10 +2,12 @@
 
 import {
   AJUSTES_INICIALES,
+  CAMPUSES_UAQ,
   PERFIL_MOCK,
   calcularSiglas,
   type AjustesCuenta,
   type PerfilEstudiante,
+  type CampusPerfil,
 } from "@/data/perfil";
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
 import { getStoredSession, cambiarContrasenaApi } from "@/services/auth";
@@ -42,33 +44,45 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
         nombre: nombreFinal,
         siglas: calcularSiglas(nombreFinal),
         campus: cambios.campus ?? actual.campus,
-        biografia: cambios.biografia !== undefined ? cambios.biografia.trim() : actual.biografia,
-        telefono: cambios.telefono !== undefined ? cambios.telefono.trim() : actual.telefono,
+        biografia:
+          cambios.biografia !== undefined
+            ? cambios.biografia.trim() || "No definido"
+            : actual.biografia,
+        telefono:
+          cambios.telefono !== undefined
+            ? cambios.telefono.trim() || "No definido"
+            : actual.telefono,
         intereses: cambios.intereses ?? actual.intereses,
       };
     });
   }, []);
-  // AGREGA ESTE BLOQUE AQUÍ:
   useEffect(() => {
-    // 1. Buscamos si hay una sesión guardada en localStorage
     const session = getStoredSession();
 
     if (session && session.user) {
       const u = session.user;
       const facultadPrincipal = u.facultades?.[0];
+      const campusOpciones: readonly string[] = [...CAMPUSES_UAQ, "No definido"];
+      const campus = campusOpciones.includes(u.campus ?? "")
+        ? (u.campus as CampusPerfil)
+        : "No definido";
 
-      // 2. Sobrescribimos el perfil con los datos reales de la BD
       setPerfil((prev) => ({
         ...prev,
         nombre: u.nombre,
         nombreCredencial: u.nombre,
         siglas: calcularSiglas(u.nombre),
-        correoInstitucional: u.email,
-        expediente: String(u.expediente || prev.expediente),
-        carrera: u.carrera || prev.carrera,
-        facultad: facultadPrincipal?.nombre || prev.facultad,
-        facultadSigla: facultadPrincipal?.abreviatura || prev.facultadSigla,
-        estatus: u.rol === 'Estudiante' ? 'Alumno Regular' : (u.rol || prev.estatus),
+        correoInstitucional: u.email || "No definido",
+        expediente: u.expediente != null ? String(u.expediente) : "No definido",
+        carrera: u.carrera?.trim() || "No definido",
+        semestre: u.semestre?.trim() || "No definido",
+        facultad: facultadPrincipal?.nombre || "No definido",
+        facultadSigla: facultadPrincipal?.abreviatura || "ND",
+        campus,
+        biografia: u.biografia?.trim() || "No definido",
+        telefono: u.telefono?.trim() || "No definido",
+        intereses: u.intereses || [],
+        estatus: u.rol === "Estudiante" ? "Alumno Regular" : u.rol || "No definido",
       }));
     }
   }, []);

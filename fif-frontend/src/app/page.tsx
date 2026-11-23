@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, Plus, ShieldCheck, X } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
@@ -22,16 +23,32 @@ import {
 import { getStoredSession } from "@/services/auth";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 
+const subscribeToSession = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
+const getSessionSnapshot = () => {
+  const session = getStoredSession();
+  return session ? JSON.stringify([session.user.rol, session.user.rolId]) : null;
+};
+
 export default function HomePage() {
+  const router = useRouter();
   const showToast = useAppToast();
   const { publicaciones } = usePublicacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
+  const sessionSnapshot = useSyncExternalStore(subscribeToSession, getSessionSnapshot, () => null);
+  const sesionVerificada = sessionSnapshot !== null;
+  const esAdmin = sessionSnapshot !== null && (() => {
+    const [rol, rolId] = JSON.parse(sessionSnapshot) as [string, number | undefined];
+    return rol === "Administrador" || rolId === 1;
+  })();
 
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [facultades, setFacultades] = useState<Facultade[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [esAdmin, setEsAdmin] = useState(false);
 
   // Modal para crear Aviso / Alerta Urgente (Admin)
   const [modalAvisoAbierto, setModalAvisoAbierto] = useState(false);
@@ -41,7 +58,7 @@ export default function HomePage() {
   const [facultadAvisoId, setFacultadAvisoId] = useState<string>("todas");
   const [guardandoAviso, setGuardandoAviso] = useState(false);
 
-  const cargarAvisos = () => {
+  const cargarAvisos = useCallback(() => {
     getAvisos()
       .then((data) => setAvisos(data))
       .catch((err) => {
@@ -49,21 +66,26 @@ export default function HomePage() {
         showToast("No se pudieron cargar los comunicados");
       })
       .finally(() => setCargando(false));
-  };
+  }, [showToast]);
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (session?.user?.rol === "Administrador" || session?.user?.rolId === 1) {
-      setEsAdmin(true);
+    if (!sesionVerificada) {
+      router.replace("/login");
+      return;
     }
+
     cargarAvisos();
     getFacultades().then((f) => setFacultades(f)).catch(() => []);
-  }, [showToast]);
+  }, [cargarAvisos, router, sesionVerificada]);
 
   const avisosFiltrados = useMemo(
     () => (categoria === "all" ? avisos : avisos.filter((a) => a.categoria === categoria)),
     [categoria, avisos]
   );
+
+  if (!sesionVerificada) {
+    return <main className="min-h-screen bg-surface" aria-label="Verificando sesión" />;
+  }
 
   const handleCrearAviso = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,8 +118,8 @@ export default function HomePage() {
       } else {
         showToast("Comunicado oficial publicado con éxito.", { tipo: "exito" });
       }
-    } catch (err: any) {
-      showToast(err?.message || "Error al publicar el comunicado", { tipo: "error" });
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Error al publicar el comunicado", { tipo: "error" });
     } finally {
       setGuardandoAviso(false);
     }
@@ -200,7 +222,9 @@ export default function HomePage() {
                 </label>
                 <select
                   value={urgenciaAviso}
-                  onChange={(e) => setUrgenciaAviso(e.target.value as any)}
+                  onChange={(e) =>
+                    setUrgenciaAviso(e.target.value as "BAJA" | "MEDIA" | "ALTA" | "URGENTE")
+                  }
                   className="w-full px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-outline-variant text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="URGENTE">

@@ -22,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login({ email: email.trim(), password: password.trim(), rememberDevice });
-      window.location.href = "/";
+      router.replace("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("fetch") || msg.includes("Failed") || msg.includes("Network")) {

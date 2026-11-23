@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCheck, ShieldAlert, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, CheckCheck, X } from "lucide-react";
 import { getAvisosUrgentesPendientes, confirmarLecturaAviso, type AvisoBackend } from "@/services/api";
 import { getStoredSession } from "@/services/auth";
 import { useAppToast } from "@/context/ToastContext";
@@ -13,11 +13,13 @@ export function ModalAlertaUrgente() {
   const [confirmando, setConfirmando] = useState(false);
   const [cerradoTemporal, setCerradoTemporal] = useState(false);
 
-  const cargarUrgentes = () => {
+  const cargarUrgentes = useCallback(() => {
     const session = getStoredSession();
-    const userId = session?.user?.id ?? 2;
+    if (!session) {
+      return;
+    }
 
-    getAvisosUrgentesPendientes(userId)
+    getAvisosUrgentesPendientes()
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setAvisosPendientes(data);
@@ -30,12 +32,13 @@ export function ModalAlertaUrgente() {
       })
       .catch((err) => {
         console.error("Error al cargar alertas urgentes:", err);
+        showToast("No se pudieron cargar las alertas pendientes.", { tipo: "error" });
       });
-  };
+  }, [showToast]);
 
   useEffect(() => {
     cargarUrgentes();
-  }, []);
+  }, [cargarUrgentes]);
 
   if (!avisoActual || cerradoTemporal) {
     return null;
@@ -43,11 +46,9 @@ export function ModalAlertaUrgente() {
 
   const handleConfirmar = async () => {
     setConfirmando(true);
-    const session = getStoredSession();
-    const userId = session?.user?.id ?? 2;
 
     try {
-      await confirmarLecturaAviso(avisoActual.id, userId);
+      await confirmarLecturaAviso(avisoActual.id);
       showToast("Acuse de recibo registrado exitosamente", { tipo: "exito" });
 
       const restantes = avisosPendientes.filter((a) => a.id !== avisoActual.id);

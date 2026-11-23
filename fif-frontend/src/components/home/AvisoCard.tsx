@@ -4,7 +4,6 @@ import { BadgeCheck, Bookmark, CheckCheck, Download, ImageIcon, Paperclip, Share
 import { useGuardados } from "@/context/GuardadosContext";
 import type { Aviso } from "@/data/avisos";
 import { confirmarLecturaAviso } from "@/services/api";
-import { getStoredSession } from "@/services/auth";
 
 interface AvisoCardProps {
   aviso: Aviso;
@@ -44,15 +43,13 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
   };
 
   const handleConfirmarLectura = async () => {
-    const session = getStoredSession();
-    const userId = session?.user?.id ?? 2;
     const numId = Number(aviso.id);
     if (Number.isNaN(numId)) {
       onToast("Acuse de recibo registrado");
       return;
     }
     try {
-      await confirmarLecturaAviso(numId, userId);
+      await confirmarLecturaAviso(numId);
       onToast("Acuse de recibo registrado en el sistema");
     } catch {
       onToast("Error al registrar acuse de recibo");
@@ -88,7 +85,17 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
 
       {aviso.conImagen && (
         <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container flex items-center justify-center text-outline">
-          <ImageIcon className="w-8 h-8" />
+          {aviso.imagenUrl ? (
+            // Las imágenes de los avisos provienen de URLs administradas por el backend.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={aviso.imagenUrl}
+              alt={`Imagen del aviso: ${aviso.titulo}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <ImageIcon className="w-8 h-8" />
+          )}
           {aviso.adjunto && (
             <div className="absolute bottom-2 left-2 bg-surface-container-lowest/90 backdrop-blur-md px-2.5 py-1 rounded-md text-on-surface text-label-sm font-inter flex items-center gap-1 shadow-sm">
               <Paperclip className="w-3.5 h-3.5 text-primary" />

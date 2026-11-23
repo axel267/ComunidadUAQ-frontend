@@ -33,7 +33,8 @@ import {
   CAMPUSES_UAQ,
   INTERESES_DISPONIBLES,
   calcularSiglas,
-  type CampusUAQ,
+  type CampusPerfil,
+  type PerfilEstudiante,
 } from "@/data/perfil";
 import { VISIBILIDADES, type VisibilidadPublicacion } from "@/data/publicaciones";
 
@@ -140,12 +141,16 @@ export default function AjustesPerfilPage() {
   } = usePerfil();
   const { abrirCrear, hojas } = useGestionPublicacion();
 
-  // Estado local del formulario de perfil editable
-  const [nombre, setNombre] = useState(perfil.nombre);
-  const [campus, setCampus] = useState<CampusUAQ>(perfil.campus);
-  const [telefono, setTelefono] = useState(perfil.telefono);
-  const [biografia, setBiografia] = useState(perfil.biografia);
-  const [intereses, setIntereses] = useState<string[]>(perfil.intereses);
+  type PerfilEditable = Pick<PerfilEstudiante, "nombre" | "campus" | "telefono" | "biografia" | "intereses">;
+  const [perfilDraft, setPerfilDraft] = useState<Partial<PerfilEditable>>({});
+  const actualizarDraft = <K extends keyof PerfilEditable,>(campo: K, valor: PerfilEditable[K]) => {
+    setPerfilDraft((actual) => ({ ...actual, [campo]: valor }));
+  };
+  const nombre = perfilDraft.nombre ?? perfil.nombre;
+  const campus = perfilDraft.campus ?? perfil.campus;
+  const telefono = perfilDraft.telefono ?? perfil.telefono;
+  const biografia = perfilDraft.biografia ?? perfil.biografia;
+  const intereses = perfilDraft.intereses ?? perfil.intereses;
 
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
@@ -163,8 +168,9 @@ export default function AjustesPerfilPage() {
   }, [nombre, campus, telefono, biografia, intereses, perfil]);
 
   const toggleInteres = (tag: string) => {
-    setIntereses((actuales) =>
-      actuales.includes(tag) ? actuales.filter((t) => t !== tag) : [...actuales, tag]
+    actualizarDraft(
+      "intereses",
+      intereses.includes(tag) ? intereses.filter((t) => t !== tag) : [...intereses, tag]
     );
   };
 
@@ -281,7 +287,9 @@ export default function AjustesPerfilPage() {
             id="ajuste-expediente"
             etiqueta="Expediente / Matrícula"
             valor={`EXP-${perfil.expediente}`}
-            ayuda={`${perfil.facultad} (${perfil.facultadSigla}) • ${perfil.carrera} • ${perfil.semestre}º Semestre`}
+            ayuda={`${perfil.facultad} (${perfil.facultadSigla}) • ${perfil.carrera} • ${
+              perfil.semestre === "No definido" ? "Semestre no definido" : `${perfil.semestre}º Semestre`
+            }`}
             icono={Lock}
           />
         </section>
@@ -322,7 +330,7 @@ export default function AjustesPerfilPage() {
                 type="text"
                 maxLength={50}
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => actualizarDraft("nombre", e.target.value)}
                 placeholder="Tu nombre para mostrar en el campus"
                 className={inputBase}
               />
@@ -340,9 +348,10 @@ export default function AjustesPerfilPage() {
                 <select
                   id="ajuste-campus"
                   value={campus}
-                  onChange={(e) => setCampus(e.target.value as CampusUAQ)}
+                  onChange={(e) => actualizarDraft("campus", e.target.value as CampusPerfil)}
                   className={`${inputBase} appearance-none pl-10 pr-9 cursor-pointer`}
                 >
+                  <option value="No definido">No definido</option>
                   {CAMPUSES_UAQ.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -364,7 +373,7 @@ export default function AjustesPerfilPage() {
                   type="tel"
                   maxLength={20}
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => actualizarDraft("telefono", e.target.value)}
                   placeholder="442 000 0000"
                   className={`${inputBase} pl-10`}
                 />
@@ -385,7 +394,7 @@ export default function AjustesPerfilPage() {
                 rows={3}
                 maxLength={MAX_BIO}
                 value={biografia}
-                onChange={(e) => setBiografia(e.target.value)}
+                onChange={(e) => actualizarDraft("biografia", e.target.value)}
                 placeholder="Cuéntale a la comunidad tus proyectos, materias o clubes..."
                 className={`${inputBase} resize-none`}
               />

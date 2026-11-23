@@ -18,7 +18,8 @@ if (!apiKey) {
 
 const serviceAdapter = new GoogleGenerativeAIAdapter({
   apiKey: apiKey || "dummy-key-for-initialization",
-  model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+  model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+  apiVersion: "v1beta",
 });
 
 const runtime = new CopilotRuntime();

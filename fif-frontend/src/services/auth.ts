@@ -24,6 +24,11 @@ export interface AuthUser {
   rolId?: number;
   area?: string;
   carrera?: string;
+  semestre?: string;
+  campus?: string;
+  biografia?: string;
+  telefono?: string;
+  intereses?: string[];
   facultades?: { id: number; nombre: string; abreviatura: string }[];
 }
 
@@ -97,12 +102,17 @@ export interface ActivateAccountPayload {
   nombre?: string;
   expediente: string | number;
   carrera?: string;
+  facultadId?: number;
+  semestre?: string;
+  campus?: string;
+  biografia?: string;
+  telefono?: string;
+  intereses?: string[];
   email: string;
 }
 
 export interface ActivateAccountResponse {
   message: string;
-  temporaryPassword?: string;
   user: AuthUser;
 }
 

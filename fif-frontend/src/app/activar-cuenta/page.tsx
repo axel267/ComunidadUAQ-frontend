@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { activateAccount } from "@/services/auth";
-import { ChevronLeftIcon, ShieldCheckIcon, CopyIcon, CheckIcon } from "@/components/icons";
+import { getFacultades, type Facultade } from "@/services/api";
+import { CAMPUSES_UAQ, INTERESES_DISPONIBLES, type CampusUAQ } from "@/data/perfil";
+import { ChevronLeftIcon, ShieldCheckIcon, CheckIcon } from "@/components/icons";
 
 export default function ActivarCuentaPage() {
   const router = useRouter();
@@ -13,13 +15,28 @@ export default function ActivarCuentaPage() {
   const [expediente, setExpediente] = useState("");
   const [carrera, setCarrera] = useState("");
   const [email, setEmail] = useState("");
+  const [facultadId, setFacultadId] = useState("");
+  const [semestre, setSemestre] = useState("");
+  const [campus, setCampus] = useState<CampusUAQ | "">("");
+  const [telefono, setTelefono] = useState("");
+  const [biografia, setBiografia] = useState("");
+  const [intereses, setIntereses] = useState<string[]>([]);
+  const [facultades, setFacultades] = useState<Facultade[]>([]);
+  const [errorFacultades, setErrorFacultades] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const [activatedSuccess, setActivatedSuccess] = useState(false);
-  const [tempPassword, setTempPassword] = useState("");
+
+  useEffect(() => {
+    getFacultades()
+      .then(setFacultades)
+      .catch((err: unknown) => {
+        console.error("No se pudieron cargar las facultades:", err);
+        setErrorFacultades("No se pudieron cargar las facultades; puedes continuar sin seleccionar una.");
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,16 +55,19 @@ export default function ActivarCuentaPage() {
 
     setLoading(true);
     try {
-      const res = await activateAccount({
+      await activateAccount({
         nombre: nombre.trim() || `Estudiante ${expediente.trim()}`,
         expediente: expediente.trim(),
-        carrera: carrera.trim(),
+        carrera: carrera.trim() || undefined,
+        facultadId: facultadId ? Number(facultadId) : undefined,
+        semestre: semestre || undefined,
+        campus: campus || undefined,
+        telefono: telefono.trim() || undefined,
+        biografia: biografia.trim() || undefined,
+        intereses,
         email: trimmedEmail,
       });
 
-      if (res.temporaryPassword) {
-        setTempPassword(res.temporaryPassword);
-      }
       setActivatedSuccess(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -55,13 +75,6 @@ export default function ActivarCuentaPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCopy = () => {
-    if (!tempPassword) return;
-    navigator.clipboard.writeText(tempPassword);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -154,13 +167,129 @@ export default function ActivarCuentaPage() {
                 </label>
                 <input
                   id="carrera"
-                  required
                   value={carrera}
                   onChange={(e) => setCarrera(e.target.value)}
-                  placeholder="Ej. Ingeniería de Software"
+                  placeholder="Opcional"
                   className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
                 />
               </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700" htmlFor="facultad">
+                  Facultad (opcional)
+                </label>
+                <select
+                  id="facultad"
+                  value={facultadId}
+                  onChange={(e) => setFacultadId(e.target.value)}
+                  className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
+                >
+                  <option value="">No definido</option>
+                  {facultades.map((facultad) => (
+                    <option key={facultad.id} value={facultad.id}>
+                      {facultad.nombre}
+                    </option>
+                  ))}
+                </select>
+                {errorFacultades && <p className="text-xs text-amber-700">{errorFacultades}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700" htmlFor="campus">
+                  Campus habitual (opcional)
+                </label>
+                <select
+                  id="campus"
+                  value={campus}
+                  onChange={(e) => setCampus(e.target.value as CampusUAQ | "")}
+                  className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
+                >
+                  <option value="">No definido</option>
+                  {CAMPUSES_UAQ.map((opcion) => (
+                    <option key={opcion} value={opcion}>
+                      {opcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700" htmlFor="semestre">
+                  Semestre (opcional)
+                </label>
+                <input
+                  id="semestre"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={semestre}
+                  onChange={(e) => setSemestre(e.target.value)}
+                  placeholder="No definido"
+                  className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700" htmlFor="telefono">
+                  Teléfono (opcional)
+                </label>
+                <input
+                  id="telefono"
+                  type="tel"
+                  maxLength={20}
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="No definido"
+                  className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700" htmlFor="biografia">
+                  Biografía (opcional)
+                </label>
+                <textarea
+                  id="biografia"
+                  maxLength={160}
+                  rows={2}
+                  value={biografia}
+                  onChange={(e) => setBiografia(e.target.value)}
+                  placeholder="No definido"
+                  className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
+                />
+              </div>
+
+              <fieldset className="space-y-2">
+                <legend className="block text-xs font-medium text-slate-700">
+                  Intereses (opcional)
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {INTERESES_DISPONIBLES.map((interes) => {
+                    const seleccionado = intereses.includes(interes);
+                    return (
+                      <button
+                        key={interes}
+                        type="button"
+                        aria-pressed={seleccionado}
+                        onClick={() =>
+                          setIntereses((actuales) =>
+                            seleccionado
+                              ? actuales.filter((item) => item !== interes)
+                              : [...actuales, interes]
+                          )
+                        }
+                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                          seleccionado
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                      >
+                        {interes}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-700" htmlFor="email">
@@ -197,7 +326,7 @@ export default function ActivarCuentaPage() {
                 disabled={loading}
                 className="w-full mt-3 py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 active:scale-[0.98] text-white font-semibold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all duration-150"
               >
-                <span>{loading ? "Generando contraseña..." : "Activar Cuenta y Recibir Contraseña"}</span>
+                <span>{loading ? "Enviando correo..." : "Activar Cuenta y Recibir Contraseña"}</span>
               </button>
             </form>
           </section>
@@ -211,33 +340,6 @@ export default function ActivarCuentaPage() {
             <p className="text-xs text-slate-500 mb-5 leading-relaxed">
               Hemos enviado tu contraseña temporal a <strong className="text-slate-700">{email}</strong>.
             </p>
-
-            {tempPassword && (
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-5 text-left">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Tu contraseña temporal
-                </span>
-                <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3.5 py-2.5">
-                  <code className="text-base font-bold font-mono text-blue-700 tracking-wider">
-                    {tempPassword}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors"
-                  >
-                    {copied ? (
-                      <span className="text-emerald-600 font-bold">Copiado</span>
-                    ) : (
-                      <CopyIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-2">
-                  Guárdala o cópiala. Podrás cambiarla una vez que inicies sesión en tu perfil.
-                </p>
-              </div>
-            )}
 
             <button
               type="button"
