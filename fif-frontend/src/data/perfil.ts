@@ -177,10 +177,10 @@ export const GESTION_ACADEMICA: EntradaMenu[] = [
 export const CUENTA_SEGURIDAD: EntradaMenu[] = [
   {
     id: "seguridad",
-    titulo: "Seguridad y Acceso",
-    descripcion: "Cambiar contraseña institucional y 2FA",
+    titulo: "Cambiar Contraseña",
+    descripcion: "Actualiza tu contraseña institucional de acceso",
     icono: KeyRound,
-    iconoClases: "bg-surface-container text-on-surface-variant",
+    iconoClases: "bg-primary-fixed/40 text-primary",
   },
   {
     id: "ayuda",

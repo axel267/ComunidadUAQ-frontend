@@ -19,11 +19,12 @@ export function CambiarContrasenaSheet({ onClose }: CambiarContrasenaSheetProps)
   const [nueva, setNueva] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   const cumpleLongitud = nueva.length >= 8;
   const coincide = confirmacion.length > 0 && nueva === confirmacion;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -32,17 +33,22 @@ export function CambiarContrasenaSheet({ onClose }: CambiarContrasenaSheetProps)
       return;
     }
 
-    const resultado = cambiarContrasena(actual, nueva);
-    if (!resultado.ok) {
-      setError(resultado.motivo);
-      return;
-    }
+    setGuardando(true);
+    try {
+      const resultado = await cambiarContrasena(actual, nueva);
+      if (!resultado.ok) {
+        setError(resultado.motivo);
+        return;
+      }
 
-    onClose();
-    showToast("Contraseña actualizada correctamente", {
-      tipo: "exito",
-      detalle: `Cuenta protegida: ${perfil.correoInstitucional}`,
-    });
+      onClose();
+      showToast("Contraseña actualizada correctamente", {
+        tipo: "exito",
+        detalle: `Cuenta protegida: ${perfil.correoInstitucional}`,
+      });
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -112,10 +118,10 @@ export function CambiarContrasenaSheet({ onClose }: CambiarContrasenaSheetProps)
           </button>
           <button
             type="submit"
-            disabled={!actual || !cumpleLongitud || !coincide}
+            disabled={guardando || !actual || !cumpleLongitud || !coincide}
             className="flex-1 h-11 rounded-xl bg-primary text-on-primary text-label-lg shadow-sm hover:bg-primary-container disabled:opacity-45 transition-all active:scale-95"
           >
-            Guardar contraseña
+            {guardando ? "Guardando..." : "Guardar contraseña"}
           </button>
         </div>
       </form>

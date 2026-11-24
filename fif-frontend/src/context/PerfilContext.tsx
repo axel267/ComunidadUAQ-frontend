@@ -61,7 +61,7 @@ interface PerfilContextValue {
   actualizarPrivacidad: (cambios: Partial<AjustesCuenta["privacidad"]>) => void;
   actualizarNotificaciones: (cambios: Partial<AjustesCuenta["notificaciones"]>) => void;
   alternarDobleFactor: () => boolean;
-  cambiarContrasena: (actual: string, nueva: string) => ResultadoCambioPassword;
+  cambiarContrasena: (actual: string, nueva: string) => Promise<ResultadoCambioPassword>;
   cerrarOtrasSesiones: () => number;
   restablecerAjustes: () => void;
 }
@@ -199,7 +199,7 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     return siguiente;
   }, [ajustes.seguridad.dobleFactor]);
 
-  const cambiarContrasena = useCallback((actual: string, nueva: string): ResultadoCambioPassword => {
+  const cambiarContrasena = useCallback(async (actual: string, nueva: string): Promise<ResultadoCambioPassword> => {
     if (!actual.trim()) {
       return { ok: false, motivo: "Ingresa tu contraseña actual para confirmar." };
     }
@@ -209,23 +209,28 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     if (actual === nueva) {
       return { ok: false, motivo: "La nueva contraseña debe ser distinta a la actual." };
     }
-    const session = getStoredSession();
-    if (session?.user?.id) {
-      cambiarContrasenaApi({
-        userId: session.user.id,
+    const currentSession = getStoredSession();
+    if (!currentSession?.user?.id) {
+      return { ok: false, motivo: "No hay una sesión activa para cambiar la contraseña." };
+    }
+
+    try {
+      await cambiarContrasenaApi({
+        userId: currentSession.user.id,
         contrasenaActual: actual,
         nuevaContrasena: nueva,
         confirmarContrasena: nueva,
-      }).catch((e) => {
-        console.error("Error al actualizar contrasena en el backend:", e);
       });
-    }
 
-    setAjustes((prev) => ({
-      ...prev,
-      seguridad: { ...prev.seguridad, ultimoCambioPassword: "Actualizada hoy" },
-    }));
-    return { ok: true };
+      setAjustes((prev) => ({
+        ...prev,
+        seguridad: { ...prev.seguridad, ultimoCambioPassword: "Actualizada hoy" },
+      }));
+      return { ok: true };
+    } catch (e: unknown) {
+      const motivo = e instanceof Error ? e.message : "No se pudo actualizar la contraseña.";
+      return { ok: false, motivo };
+    }
   }, []);
 
   const cerrarOtrasSesiones = useCallback(() => {

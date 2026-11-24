@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Copy,
   FilePlus2,
+  KeyRound,
   LogIn,
   LogOut,
   MapPin,
@@ -20,6 +21,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { CredencialDigital } from "@/components/perfil/CredencialDigital";
 import { ResumenRecompensas } from "@/components/perfil/ResumenRecompensas";
+import { CambiarContrasenaSheet } from "@/components/perfil/CambiarContrasenaSheet";
 import {
   SeccionEventosInstitucionales,
   extraerEventosInstitucionales,
@@ -87,6 +89,7 @@ export default function PerfilPage() {
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [pestana, setPestana] = useState<Pestana>("publicaciones");
   const [credencialCompleta, setCredencialCompleta] = useState(false);
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
   const { perfil, ajustes } = usePerfil();
   const { isAuthenticated: estaAutenticado, cerrarSesion: cerrarSesionAuth } = useAuth();
@@ -109,7 +112,7 @@ export default function PerfilPage() {
 
   const seleccionarEntrada = (entrada: EntradaMenu) => {
     if (entrada.id === "avisos") return abrirNotificaciones();
-    if (entrada.id === "seguridad") return router.push("/perfil/ajustes#seguridad");
+    if (entrada.id === "seguridad") return setCambiandoPassword(true);
     if (entrada.id === "tramites" || entrada.id === "ayuda") return router.push("/tramites");
     proximamente(entrada.titulo);
   };
@@ -150,6 +153,15 @@ export default function PerfilPage() {
               </div>
             </div>
             <div className="flex items-center gap-space-xs">
+              <button
+                type="button"
+                onClick={() => setCambiandoPassword(true)}
+                aria-label="Cambiar contraseña"
+                className="h-10 px-space-sm rounded-full bg-surface-container-low text-on-surface text-label-md flex items-center gap-space-xxs hover:bg-surface-container transition-colors shadow-sm"
+              >
+                <KeyRound className="w-[18px] h-[18px] text-primary" />
+                <span className="hidden sm:inline">Contraseña</span>
+              </button>
               <Link
                 href="/perfil/ajustes"
                 aria-label="Ajustes de cuenta"
@@ -469,6 +481,7 @@ export default function PerfilPage() {
         </section>
       </main>
 
+      {cambiandoPassword && <CambiarContrasenaSheet onClose={() => setCambiandoPassword(false)} />}
       <AppBottomNav onPublishClick={abrirCrear} />
       {hojas}
     </div>
