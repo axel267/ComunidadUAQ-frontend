@@ -2,11 +2,10 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { DetalleHost, type DetalleActivo } from "@/components/detalle/DetalleHost";
-import { CONVOCATORIA_OFICIAL, type Aviso } from "@/data/avisos";
+import type { Aviso } from "@/data/avisos";
 
 interface DetalleContextValue {
   abrirAviso: (aviso: Aviso) => void;
-  abrirConvocatoriaOficial: () => void;
   abrirPublicacion: (id: string) => void;
   abrirPost: (id: string) => void;
   cerrar: () => void;
@@ -19,13 +18,12 @@ export function DetalleProvider({ children }: { children: ReactNode }) {
 
   const cerrar = useCallback(() => setActivo(null), []);
   const abrirAviso = useCallback((aviso: Aviso) => setActivo({ tipo: "aviso", aviso }), []);
-  const abrirConvocatoriaOficial = useCallback(() => setActivo({ tipo: "aviso", aviso: CONVOCATORIA_OFICIAL }), []);
   const abrirPublicacion = useCallback((id: string) => setActivo({ tipo: "publicacion", id }), []);
   const abrirPost = useCallback((id: string) => setActivo({ tipo: "post", id }), []);
 
   const valor = useMemo(
-    () => ({ abrirAviso, abrirConvocatoriaOficial, abrirPublicacion, abrirPost, cerrar }),
-    [abrirAviso, abrirConvocatoriaOficial, abrirPublicacion, abrirPost, cerrar]
+    () => ({ abrirAviso, abrirPublicacion, abrirPost, cerrar }),
+    [abrirAviso, abrirPublicacion, abrirPost, cerrar]
   );
 
   return (

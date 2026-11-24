@@ -1,19 +1,23 @@
 "use client";
 
-import { BadgeCheck, Bookmark, FileText, Paperclip } from "lucide-react";
+import type { ReactNode } from "react";
+import { BadgeCheck, Bookmark, CalendarX2, FileText, Paperclip } from "lucide-react";
 import { useGuardados } from "@/context/GuardadosContext";
 import { useAppToast } from "@/context/ToastContext";
 import { CATEGORIAS_FILTRO, type Aviso } from "@/data/avisos";
 import { DescargarAdjunto } from "./DescargarAdjunto";
 import { DetalleShell } from "./DetalleShell";
 import { formatearFechaHora } from "./formato";
+import { formatearFechaLimite } from "@/services/comunicadoMapper";
 
 interface DetalleAvisoProps {
   aviso: Aviso;
   onClose: () => void;
+  etiqueta?: string;
+  acciones?: ReactNode;
 }
 
-export function DetalleAviso({ aviso, onClose }: DetalleAvisoProps) {
+export function DetalleAviso({ aviso, onClose, etiqueta = "Comunicado oficial", acciones }: DetalleAvisoProps) {
   const showToast = useAppToast();
   const { estaGuardado, alternar } = useGuardados();
   const guardado = estaGuardado(aviso.id);
@@ -23,7 +27,7 @@ export function DetalleAviso({ aviso, onClose }: DetalleAvisoProps) {
   const etiquetaDescarga = aviso.adjunto && /convocatoria/i.test(aviso.adjunto.nombre) ? "Descargar convocatoria" : "Descargar adjunto";
 
   return (
-    <DetalleShell etiqueta="Comunicado oficial" onClose={onClose}>
+    <DetalleShell etiqueta={etiqueta} onClose={onClose}>
       <div className="flex items-center gap-space-xs">
         <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${aviso.iconoWrapperClases}`}>
           <Icono className="w-6 h-6" />
@@ -34,6 +38,7 @@ export function DetalleAviso({ aviso, onClose }: DetalleAvisoProps) {
             {aviso.verificado && <BadgeCheck className="w-4 h-4 text-primary fill-primary/10 shrink-0" />}
           </span>
           <span className="text-label-sm font-inter text-secondary">
+            {aviso.area ? `${aviso.area} • ` : ""}
             {aviso.verificado ? "Cuenta oficial verificada" : "Comunidad UAQ"} • {fecha}
           </span>
         </div>
@@ -46,6 +51,13 @@ export function DetalleAviso({ aviso, onClose }: DetalleAvisoProps) {
       </div>
 
       <h3 className="text-headline-md text-on-surface break-words">{aviso.titulo}</h3>
+      {aviso.fechaLimite && (
+        <p className="flex items-center gap-1.5 text-label-lg text-on-error-container bg-error-container rounded-lg px-3 py-1.5 w-max max-w-full">
+          <CalendarX2 className="w-4 h-4 shrink-0" />
+          Límite: {formatearFechaLimite(aviso.fechaLimite)}
+        </p>
+      )}
+      {aviso.resumen && <p className="text-body-md text-on-surface font-semibold break-words">{aviso.resumen}</p>}
       <p className="text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap break-words">{aviso.descripcion}</p>
 
       {aviso.imagenUrl && (
@@ -71,6 +83,8 @@ export function DetalleAviso({ aviso, onClose }: DetalleAvisoProps) {
           Este comunicado no incluye archivos adjuntos.
         </p>
       )}
+
+      {acciones}
 
       <button
         type="button"

@@ -2,16 +2,20 @@
 
 import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Plus, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, Megaphone, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { useAppToast } from "@/context/ToastContext";
-import { useDetalle } from "@/context/DetalleContext";
 import { HeroAnnouncement } from "@/components/home/HeroAnnouncement";
 import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { AvisoCard } from "@/components/home/AvisoCard";
 import { UpcomingDates } from "@/components/home/UpcomingDates";
 import { TelegramBanner } from "@/components/home/TelegramBanner";
+import { ComunicadoFormulario } from "@/components/home/ComunicadoFormulario";
+import { DetalleAviso } from "@/components/detalle/DetalleAviso";
+import { useComunicadoOficial } from "@/hooks/useComunicadoOficial";
+import { comunicadoAAviso } from "@/services/comunicadoMapper";
+import { desactivarComunicadoOficial } from "@/services/comunicadoOficial";
 import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
@@ -31,26 +35,32 @@ const subscribeToSession = (callback: () => void) => {
 
 const getSessionSnapshot = () => {
   const session = getStoredSession();
-  return session ? JSON.stringify([session.user.rol, session.user.rolId]) : null;
+  return session ? JSON.stringify([session.user.rol, session.user.rolId, session.user.id]) : null;
 };
 
 export default function HomePage() {
   const router = useRouter();
   const showToast = useAppToast();
-  const { abrirConvocatoriaOficial } = useDetalle();
   const { publicaciones } = usePublicacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
   const sessionSnapshot = useSyncExternalStore(subscribeToSession, getSessionSnapshot, () => null);
   const sesionVerificada = sessionSnapshot !== null;
-  const esAdmin = sessionSnapshot !== null && (() => {
-    const [rol, rolId] = JSON.parse(sessionSnapshot) as [string, number | undefined];
-    return rol === "Administrador" || rolId === 1;
-  })();
+  const [rolSesion, rolIdSesion, usuarioId] = sessionSnapshot
+    ? (JSON.parse(sessionSnapshot) as [string, number | undefined, number | undefined])
+    : [undefined, undefined, undefined];
+  const esAdmin = rolSesion === "Administrador" || rolIdSesion === 1;
+  const esCoordinador = rolIdSesion === 4 || Boolean(rolSesion?.startsWith("Coordinaci"));
 
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [facultades, setFacultades] = useState<Facultade[]>([]);
   const [cargando, setCargando] = useState(true);
+  const { comunicado, recargar: recargarComunicado } = useComunicadoOficial(sesionVerificada);
+  const [detalleComunicadoAbierto, setDetalleComunicadoAbierto] = useState(false);
+  const [formularioComunicado, setFormularioComunicado] = useState<"crear" | "editar" | null>(null);
+  const puedeEditarComunicado = Boolean(
+    esCoordinador && comunicado && usuarioId !== undefined && comunicado.autorId === usuarioId
+  );
 
   // Modal para crear Aviso / Alerta Urgente (Admin)
   const [modalAvisoAbierto, setModalAvisoAbierto] = useState(false);
@@ -88,6 +98,18 @@ export default function HomePage() {
   if (!sesionVerificada) {
     return <main className="min-h-screen bg-surface" aria-label="Verificando sesión" />;
   }
+
+  const handleDesactivarComunicado = async () => {
+    if (!comunicado || !window.confirm("¿Desactivar este comunicado oficial? Dejará de mostrarse en el banner.")) return;
+    try {
+      await desactivarComunicadoOficial(comunicado.id);
+      setDetalleComunicadoAbierto(false);
+      await recargarComunicado();
+      showToast("Comunicado oficial desactivado", { tipo: "exito" });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "No se pudo desactivar el comunicado", { tipo: "error" });
+    }
+  };
 
   const handleCrearAviso = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +178,28 @@ export default function HomePage() {
           </div>
         )}
 
+        {esCoordinador && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-tertiary-fixed/40 border border-tertiary/20 rounded-2xl p-4 gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0">
+                <Megaphone className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-label-md font-bold text-on-surface">Comunicado Oficial</span>
+                <span className="text-body-xs text-secondary">Publica el comunicado que se muestra en el banner principal.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormularioComunicado("crear")}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-label-sm font-semibold hover:bg-primary/90 transition-all shrink-0 shadow-xs self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Publicar Comunicado Oficial</span>
+            </button>
+          </div>
+        )}
+
         {publicaciones.length > 0 && (
           <section aria-label="Tus publicaciones" className="flex flex-col gap-space-md">
             <div className="flex items-center justify-between bg-surface-container-low px-space-md py-space-xs rounded-xl shadow-sm">
@@ -173,7 +217,13 @@ export default function HomePage() {
           </section>
         )}
 
-        <HeroAnnouncement onConsultarClick={abrirConvocatoriaOficial} />
+        {comunicado && (
+          <HeroAnnouncement
+            comunicado={comunicado}
+            onConsultarClick={() => setDetalleComunicadoAbierto(true)}
+            onEditarClick={puedeEditarComunicado ? () => setFormularioComunicado("editar") : undefined}
+          />
+        )}
 
         <CategoryFilter active={categoria} onChange={setCategoria} total={avisosFiltrados.length} />
 
@@ -311,6 +361,47 @@ export default function HomePage() {
             </form>
           </div>
         </div>
+      )}
+
+      {detalleComunicadoAbierto && comunicado && (
+        <DetalleAviso
+          aviso={comunicadoAAviso(comunicado)}
+          etiqueta="Comunicado oficial"
+          onClose={() => setDetalleComunicadoAbierto(false)}
+          acciones={
+            puedeEditarComunicado ? (
+              <div className="grid grid-cols-2 gap-space-xs">
+                <button
+                  type="button"
+                  onClick={() => setFormularioComunicado("editar")}
+                  className="flex items-center justify-center gap-2 h-touch-target-min rounded-xl bg-secondary-container text-on-secondary-container text-label-lg"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Editar Comunicado
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDesactivarComunicado}
+                  className="flex items-center justify-center gap-2 h-touch-target-min rounded-xl bg-error-container text-on-error-container text-label-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Desactivar
+                </button>
+              </div>
+            ) : null
+          }
+        />
+      )}
+
+      {formularioComunicado && (
+        <ComunicadoFormulario
+          inicial={formularioComunicado === "editar" ? comunicado ?? undefined : undefined}
+          onClose={() => setFormularioComunicado(null)}
+          onGuardado={() => {
+            setFormularioComunicado(null);
+            recargarComunicado();
+          }}
+        />
       )}
 
       <AppBottomNav onPublishClick={abrirCrear} />

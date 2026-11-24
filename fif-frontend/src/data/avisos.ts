@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Banknote, Landmark, HardHat, GraduationCap } from "lucide-react";
+import { Banknote, Landmark, HardHat } from "lucide-react";
 
 export type CategoriaAviso = "academico" | "becas" | "eventos" | "urgente";
 
@@ -20,6 +20,10 @@ export interface Aviso {
   imagenUrl?: string;
   adjunto?: { nombre: string; tamano: string; url?: string };
   fechaPublicacion?: string;
+  fechaLimite?: string;
+  resumen?: string;
+  area?: string;
+  autorId?: number;
 }
 
 // Datos de ejemplo mientras se define el contrato real del backend (RF04 - CRUD de avisos).
@@ -73,23 +77,6 @@ export const AVISOS_MOCK: Aviso[] = [
     conImagen: true,
   },
 ];
-
-export const CONVOCATORIA_OFICIAL: Aviso = {
-  id: "convocatoria-reinscripciones-2025-a",
-  autor: "Servicios Escolares",
-  verificado: true,
-  tiempo: "Oficial",
-  referencia: "Convocatoria Reinscripciones 2025-A",
-  categoria: "urgente",
-  etiqueta: "Reinscripciones",
-  etiquetaClases: "bg-red-100 text-red-800 font-semibold",
-  icono: GraduationCap,
-  iconoWrapperClases: "bg-primary-fixed text-primary",
-  titulo: "Periodo de Reinscripciones Semestre 2025-A abierto",
-  descripcion:
-    "Consulta el calendario por promedio general y carga tus materias a tiempo.\n\nLa fecha l\u00edmite para completar tu reinscripci\u00f3n es el 28 de febrero de 2025. El calendario se asigna por promedio general: a mayor promedio, mayor prioridad en la selecci\u00f3n de horarios.\n\nRecomendaciones: verifica que no tengas adeudos en caja o biblioteca, revisa tu carga acad\u00e9mica con tu coordinaci\u00f3n y realiza tu proceso dentro del horario asignado.",
-  adjunto: { nombre: "Convocatoria_Reinscripciones_2025-A.pdf", tamano: "1.2 MB" },
-};
 
 export interface FechaClave {
   id: string;
