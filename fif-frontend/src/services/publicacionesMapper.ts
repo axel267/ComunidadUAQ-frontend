@@ -2,6 +2,7 @@ import { calcularSiglas } from "@/data/perfil";
 import type {
   AdjuntoPublicacion,
   AutorPublicacion,
+  DuracionEncuesta,
   Publicacion,
   TemaPublicacion,
 } from "@/data/publicaciones";
@@ -36,7 +37,18 @@ export function mapearDesdeBackend(
   autorSesion: AutorPublicacion,
   adjuntoExistente?: AdjuntoPublicacion
 ): Publicacion {
-  const adjuntoBackend = item.imagenesUrl
+  const adjuntoEncuesta: AdjuntoPublicacion | undefined = item.encuesta?.opciones?.length
+    ? {
+        tipo: "encuesta",
+        pregunta: item.encuesta.pregunta,
+        opciones: item.encuesta.opciones,
+        duracion: (item.encuesta.duracion as DuracionEncuesta) || "3d",
+        votosPorOpcion: item.encuesta.votosPorOpcion,
+        votosUsuarios: item.encuesta.votosUsuarios,
+      }
+    : undefined;
+
+  const adjuntoImagen: AdjuntoPublicacion | undefined = item.imagenesUrl
     ? ({ tipo: "imagen", archivo: item.imagenesUrl as unknown as File } as AdjuntoPublicacion)
     : undefined;
 
@@ -48,6 +60,6 @@ export function mapearDesdeBackend(
     visibilidad: "facultad",
     autor: autorDesdeBackend(item, autorSesion),
     creadaEn: new Date(item.fechaCreacion).getTime(),
-    adjunto: adjuntoExistente ?? adjuntoBackend,
+    adjunto: adjuntoEncuesta ?? adjuntoExistente ?? adjuntoImagen,
   };
 }

@@ -1,3 +1,5 @@
+import type { DatosEncuestaPublicacion } from "./publicaciones";
+
 export type FiltroComunidad = "para-ti" | "carrera" | "tendencias" | "dudas";
 
 export const FILTROS_COMUNIDAD: { id: FiltroComunidad; label: string }[] = [
@@ -102,6 +104,7 @@ export interface PostComunidad {
   };
   fuegos: number;
   fuegoActivo?: boolean;
+  encuesta?: DatosEncuestaPublicacion;
   comentariosLista: ComentarioComunidad[];
 }
 

@@ -20,6 +20,7 @@ import {
 import { useObjectUrl } from "@/hooks/useObjectUrl";
 import { getStoredSession } from "@/services/auth";
 import { SeccionComentarios } from "./comentarios/SeccionComentarios";
+import { EncuestaInteractiva } from "./encuesta/EncuestaInteractiva";
 import {
   DURACIONES_ENCUESTA,
   etiquetaTema,
@@ -100,30 +101,6 @@ function AdjuntoDocumento({ archivo }: { archivo?: File | { name?: string; size?
   );
 }
 
-function AdjuntoEncuesta({ adjunto }: { adjunto: Extract<AdjuntoPublicacion, { tipo: "encuesta" }> }) {
-  const duracion = DURACIONES_ENCUESTA.find((d) => d.id === adjunto.duracion)?.label ?? adjunto.duracion;
-  return (
-    <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3.5 space-y-2.5">
-      <p className="flex items-start gap-2 text-label-lg text-on-surface">
-        <ChartColumn className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        {adjunto.pregunta}
-      </p>
-      <ul className="space-y-1.5">
-        {adjunto.opciones.map((opcion, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-md text-on-surface"
-          >
-            <span className="w-4 h-4 rounded-full border-2 border-outline-variant shrink-0" />
-            {opcion}
-          </li>
-        ))}
-      </ul>
-      <p className="text-label-sm text-secondary">Votación abierta · {duracion}</p>
-    </div>
-  );
-}
-
 function AdjuntoEvento({ adjunto }: { adjunto: Extract<AdjuntoPublicacion, { tipo: "evento" }> }) {
   return (
     <div className="bg-primary-fixed/40 border border-primary-fixed rounded-xl p-3.5 space-y-1.5">
@@ -140,7 +117,7 @@ function AdjuntoEvento({ adjunto }: { adjunto: Extract<AdjuntoPublicacion, { tip
   );
 }
 
-function Adjunto({ adjunto }: { adjunto: AdjuntoPublicacion }) {
+function Adjunto({ publicacionId, adjunto }: { publicacionId: string; adjunto: AdjuntoPublicacion }) {
   switch (adjunto.tipo) {
     case "imagen":
       return <AdjuntoImagen archivo={adjunto.archivo} />;
@@ -149,7 +126,7 @@ function Adjunto({ adjunto }: { adjunto: AdjuntoPublicacion }) {
     case "documento":
       return <AdjuntoDocumento archivo={adjunto.archivo} />;
     case "encuesta":
-      return <AdjuntoEncuesta adjunto={adjunto} />;
+      return <EncuestaInteractiva publicacionId={publicacionId} encuesta={adjunto} />;
     case "evento":
       return <AdjuntoEvento adjunto={adjunto} />;
   }
@@ -216,7 +193,7 @@ export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProp
 
       <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap break-words">{texto}</p>
 
-      {adjunto && <Adjunto adjunto={adjunto} />}
+      {adjunto && <Adjunto publicacionId={publicacion.id} adjunto={adjunto} />}
 
       <div className="flex items-center justify-between pt-space-xxs">
         <span className="inline-flex items-center gap-1 text-label-sm font-inter px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">

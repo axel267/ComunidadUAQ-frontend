@@ -28,6 +28,7 @@ import { useGuardados } from "@/context/GuardadosContext";
 import { useAppToast } from "@/context/ToastContext";
 import { contarComentarios, type PostComunidad } from "@/data/comunidad";
 import { getStoredSession } from "@/services/auth";
+import { EncuestaInteractiva } from "@/components/publicar/encuesta/EncuestaInteractiva";
 
 interface PostComunidadCardProps {
   post: PostComunidad;
@@ -228,6 +229,8 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
 
         <div className="p-card-padding flex flex-col gap-space-xs">
           <p className="text-body-md text-on-surface">{post.texto}</p>
+
+        {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
           <div className="flex flex-wrap gap-2 py-1">
             <span className="flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-lg text-on-surface-variant text-label-md">
               <CalendarDays className="w-4 h-4 text-primary" /> {ev.fecha}
@@ -282,8 +285,12 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
 
         <div className="bg-surface-container-low p-3.5 rounded-xl">
           <p className="text-headline-sm text-on-surface mb-1">{post.texto}</p>
-          {post.textoSecundario && <p className="text-body-sm text-secondary">{post.textoSecundario}</p>}
+          {post.textoSecundario && post.textoSecundario !== post.texto && (
+            <p className="text-body-sm text-secondary">{post.textoSecundario}</p>
+          )}
         </div>
+
+        {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
 
         {ultimas.length > 0 && (
           <div className="flex flex-col gap-2 mt-1 pl-2">
@@ -443,6 +450,8 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         </div>
 
         <p className="text-body-md text-on-surface">{post.texto}</p>
+
+        {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
 
         {post.galeria && (
           <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden mt-1">

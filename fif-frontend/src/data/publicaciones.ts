@@ -48,11 +48,19 @@ export const AUTOR_MOCK: AutorPublicacion = {
   etiqueta: "Informática UAQ",
 };
 
+export interface DatosEncuestaPublicacion {
+  pregunta: string;
+  opciones: string[];
+  duracion: DuracionEncuesta;
+  votosPorOpcion?: number[];
+  votosUsuarios?: Record<string, number>;
+}
+
 export type AdjuntoPublicacion =
   | { tipo: "imagen"; archivo: File }
   | { tipo: "video"; archivo?: File; enlace?: string }
   | { tipo: "documento"; archivo: File }
-  | { tipo: "encuesta"; pregunta: string; opciones: string[]; duracion: DuracionEncuesta }
+  | ({ tipo: "encuesta" } & DatosEncuestaPublicacion)
   | { tipo: "evento"; titulo: string; fechaHora: string; lugar: string };
 
 // Contrato que recibe el padre al publicar; el backend (RF04) aún no está definido.

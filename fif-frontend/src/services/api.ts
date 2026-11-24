@@ -1,6 +1,7 @@
 import { Banknote, Landmark, AlertTriangle, BookOpen } from "lucide-react";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 import type { PostComunidad, ComentarioComunidad, FiltroComunidad } from "@/data/comunidad";
+import type { DatosEncuestaPublicacion, DuracionEncuesta } from "@/data/publicaciones";
 import { calcularSiglas } from "@/data/perfil";
 import { getAccessToken, getStoredSession } from "./auth";
 import { mapearComentariosForo, type ComentarioForoBackend } from "./comentariosMapper";
@@ -358,6 +359,7 @@ export interface PublicacionBackend {
   imagenesUrl?: string | null;
   fechaCreacion: string;
   autorId?: number;
+  encuesta?: DatosEncuestaPublicacion | null;
   autor: {
     id: number;
     nombre: string;
@@ -383,6 +385,15 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
     categoriasFiltro.push("carrera");
 
     const comentariosLista: ComentarioComunidad[] = mapearComentariosForo(item.comentarios, usuarioActualId);
+    const encuesta = item.encuesta?.opciones?.length
+      ? {
+          pregunta: item.encuesta.pregunta,
+          opciones: item.encuesta.opciones,
+          duracion: (item.encuesta.duracion as DuracionEncuesta) || "3d",
+          votosPorOpcion: item.encuesta.votosPorOpcion,
+          votosUsuarios: item.encuesta.votosUsuarios,
+        }
+      : undefined;
 
     return {
       id: String(item.id),
@@ -404,6 +415,7 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
       texto: item.titulo,
       textoSecundario: item.contenido,
       fuegos: item.votos || 0,
+      encuesta,
       comentariosLista,
     };
   });
@@ -421,6 +433,7 @@ export interface CreatePublicacionPayload {
   categoria?: string;
   imagenesUrl?: string;
   autorId?: number;
+  encuesta?: DatosEncuestaPublicacion;
 }
 
 export const createPublicacion = async (data: CreatePublicacionPayload): Promise<PublicacionBackend> => {
@@ -432,6 +445,28 @@ export const createPublicacion = async (data: CreatePublicacionPayload): Promise
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
     throw new Error(errorBody?.message || "Error al crear la publicacion");
+  }
+  return res.json();
+};
+
+export interface VotarEncuestaPayload {
+  opcionIndex: number;
+  usuarioId?: number;
+  encuestaFallback?: DatosEncuestaPublicacion;
+}
+
+export const votarEncuestaApi = async (
+  publicacionId: number | string,
+  payload: VotarEncuestaPayload
+): Promise<PublicacionBackend> => {
+  const res = await fetch(`${API_URL}/foros/${publicacionId}/encuesta/votar`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || "Error al registrar voto en la encuesta");
   }
   return res.json();
 };

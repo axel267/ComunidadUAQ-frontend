@@ -120,12 +120,22 @@ export function usePublicaciones(autor: AutorPublicacion = AUTOR_MOCK) {
           ? datos.adjunto.archivo
           : undefined;
 
+      const encuestaRemota =
+        datos.adjunto?.tipo === "encuesta"
+          ? {
+              pregunta: datos.adjunto.pregunta,
+              opciones: datos.adjunto.opciones,
+              duracion: datos.adjunto.duracion,
+            }
+          : undefined;
+
       createPublicacion({
         titulo: datos.texto.slice(0, 100),
         contenido: datos.texto,
         categoria: datos.tema || "comunidad",
         imagenesUrl: imgUrlRemota,
         autorId: userId,
+        encuesta: encuestaRemota,
       })
         .then((creada) =>
           aplicar((prev) => prev.map((p) => (p.id === tempId ? { ...p, id: String(creada.id) } : p)))
