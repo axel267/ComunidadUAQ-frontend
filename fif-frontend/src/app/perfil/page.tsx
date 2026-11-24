@@ -24,6 +24,8 @@ import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { useAppToast } from "@/context/ToastContext";
 import { useComunidad } from "@/context/ComunidadContext";
 import { useGuardados } from "@/context/GuardadosContext";
+import { useDetalle } from "@/context/DetalleContext";
+import { AreaClicable } from "@/components/detalle/AreaClicable";
 import { useNotificacionesApp } from "@/context/NotificacionesContext";
 import { usePerfil } from "@/context/PerfilContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
@@ -76,6 +78,7 @@ export default function PerfilPage() {
   const { publicaciones } = usePublicacionesApp();
   const { posts: postsComunidad } = useComunidad();
   const { guardados, alternar } = useGuardados();
+  const { abrirAviso, abrirPost } = useDetalle();
   const { abrir: abrirNotificaciones } = useNotificacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [pestana, setPestana] = useState<Pestana>("publicaciones");
@@ -316,8 +319,17 @@ export default function PerfilPage() {
                       <Bookmark className="w-5 h-5 fill-current" />
                     </button>
                   </div>
-                  <h2 className="text-headline-sm text-on-surface">{aviso.titulo}</h2>
-                  <p className="text-body-md text-on-surface-variant line-clamp-2">{aviso.descripcion}</p>
+                  <AreaClicable onActivar={() => abrirAviso(aviso)} etiqueta="Ver detalle del aviso" className="flex flex-col gap-space-xs">
+                    <h2 className="text-headline-sm text-on-surface">{aviso.titulo}</h2>
+                    <p className="text-body-md text-on-surface-variant line-clamp-2">{aviso.descripcion}</p>
+                  </AreaClicable>
+                  <button
+                    type="button"
+                    onClick={() => abrirAviso(aviso)}
+                    className="self-start text-label-md text-primary hover:underline"
+                  >
+                    Más información
+                  </button>
                   <span className="text-body-sm text-secondary">
                     {aviso.autor} • {aviso.referencia}
                   </span>
@@ -345,8 +357,17 @@ export default function PerfilPage() {
                       <Bookmark className="w-5 h-5 fill-current" />
                     </button>
                   </div>
-                  <h2 className="text-headline-sm text-on-surface">{post.autor.nombre}</h2>
-                  <p className="text-body-md text-on-surface-variant line-clamp-2">{post.texto}</p>
+                  <AreaClicable onActivar={() => abrirPost(post.id)} etiqueta="Ver detalle de la publicación" className="flex flex-col gap-space-xs">
+                    <h2 className="text-headline-sm text-on-surface">{post.autor.nombre}</h2>
+                    <p className="text-body-md text-on-surface-variant line-clamp-2">{post.texto}</p>
+                  </AreaClicable>
+                  <button
+                    type="button"
+                    onClick={() => abrirPost(post.id)}
+                    className="self-start text-label-md text-primary hover:underline"
+                  >
+                    Más información
+                  </button>
                   <span className="text-body-sm text-secondary">{post.subtituloTiempo}</span>
                 </article>
               ))}
@@ -366,10 +387,12 @@ export default function PerfilPage() {
                         Pre-registrado
                       </span>
                     </div>
-                    <h2 className="text-headline-sm text-on-surface">{ev.titulo}</h2>
-                    <p className="text-body-md text-on-surface-variant">
-                      {ev.fecha} • {ev.lugar}
-                    </p>
+                    <AreaClicable onActivar={() => abrirPost(post.id)} etiqueta="Ver detalle de la convocatoria" className="flex flex-col gap-space-xs">
+                      <h2 className="text-headline-sm text-on-surface">{ev.titulo}</h2>
+                      <p className="text-body-md text-on-surface-variant">
+                        {ev.fecha} • {ev.lugar}
+                      </p>
+                    </AreaClicable>
                     <span className="text-body-sm text-secondary">Organiza: {post.autor.nombre}</span>
                   </article>
                 );

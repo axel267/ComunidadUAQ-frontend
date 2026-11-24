@@ -283,6 +283,7 @@ export const getAvisos = async (): Promise<Aviso[]> => {
       descripcion: item.contenido,
       conImagen: Boolean(item.imagenesPortadaUrl),
       imagenUrl: item.imagenesPortadaUrl ?? undefined,
+      fechaPublicacion: item.fechaPublicacion,
     };
   });
 };

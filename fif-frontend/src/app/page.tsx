@@ -6,6 +6,7 @@ import { AlertTriangle, Plus, ShieldCheck, X } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { useAppToast } from "@/context/ToastContext";
+import { useDetalle } from "@/context/DetalleContext";
 import { HeroAnnouncement } from "@/components/home/HeroAnnouncement";
 import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { AvisoCard } from "@/components/home/AvisoCard";
@@ -36,6 +37,7 @@ const getSessionSnapshot = () => {
 export default function HomePage() {
   const router = useRouter();
   const showToast = useAppToast();
+  const { abrirConvocatoriaOficial } = useDetalle();
   const { publicaciones } = usePublicacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
@@ -171,7 +173,7 @@ export default function HomePage() {
           </section>
         )}
 
-        <HeroAnnouncement onConsultarClick={() => showToast("Abriendo Convocatoria Oficial...")} />
+        <HeroAnnouncement onConsultarClick={abrirConvocatoriaOficial} />
 
         <CategoryFilter active={categoria} onChange={setCategoria} total={avisosFiltrados.length} />
 

@@ -8,9 +8,11 @@ import { FormularioComentario } from "./FormularioComentario";
 
 interface SeccionComentariosProps {
   publicacionId: string | number;
+  abiertoInicial?: boolean;
+  alturaCompleta?: boolean;
 }
 
-export function SeccionComentarios({ publicacionId }: SeccionComentariosProps) {
+export function SeccionComentarios({ publicacionId, abiertoInicial = false, alturaCompleta = false }: SeccionComentariosProps) {
   const {
     comentarios,
     cargando,
@@ -19,7 +21,7 @@ export function SeccionComentarios({ publicacionId }: SeccionComentariosProps) {
     alternarAbierto,
     agregarComentario,
     eliminar,
-  } = useComentariosPublicacion(publicacionId);
+  } = useComentariosPublicacion(publicacionId, abiertoInicial);
 
   const session = getStoredSession();
   const usuarioActualId = session?.user?.id;
@@ -66,7 +68,7 @@ export function SeccionComentarios({ publicacionId }: SeccionComentariosProps) {
                   Sin comentarios todavia. Se el primero en comentar.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+                <div className={`flex flex-col gap-2 pr-1 ${alturaCompleta ? "" : "max-h-64 overflow-y-auto"}`}>
                   {comentarios.map((c) => (
                     <ComentarioItem
                       key={c.id}

@@ -2,32 +2,26 @@
 
 import {
   BookOpen,
-  CalendarDays,
-  ChartColumn,
   EllipsisVertical,
   FileText,
   Globe,
   GraduationCap,
   Landmark,
-  Link2,
-  MapPin,
   Network,
   ShieldCheck,
   Store,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useObjectUrl } from "@/hooks/useObjectUrl";
+import { AreaClicable } from "@/components/detalle/AreaClicable";
+import { useDetalle } from "@/context/DetalleContext";
 import { getStoredSession } from "@/services/auth";
+import { AdjuntoPublicacion } from "./AdjuntoPublicacion";
 import { SeccionComentarios } from "./comentarios/SeccionComentarios";
-import { EncuestaInteractiva } from "./encuesta/EncuestaInteractiva";
 import {
-  DURACIONES_ENCUESTA,
   etiquetaTema,
   etiquetaVisibilidad,
-  formatearFechaEvento,
   formatearTiempoRelativo,
-  type AdjuntoPublicacion,
   type Publicacion,
   type TemaPublicacion,
   type VisibilidadPublicacion,
@@ -46,91 +40,7 @@ const ICONO_VISIBILIDAD: Record<VisibilidadPublicacion, LucideIcon> = {
   campus: Globe,
 };
 
-function formatearTamano(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function AdjuntoImagen({ archivo }: { archivo?: File | string | unknown }) {
-  const url = useObjectUrl(archivo);
-  if (!url) return null;
-  return (
-    <div className="relative w-full h-44 rounded-xl overflow-hidden bg-surface-container shadow-sm">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="Imagen adjunta a la publicación" className="w-full h-full object-cover" />
-    </div>
-  );
-}
-
-function AdjuntoVideo({ archivo, enlace }: { archivo?: File; enlace?: string }) {
-  const url = useObjectUrl(archivo);
-  if (archivo) {
-    return (
-      <div className="w-full rounded-xl overflow-hidden bg-inverse-surface">
-        {url && <video src={url} controls className="w-full max-h-52 bg-black" aria-label="Video adjunto" />}
-      </div>
-    );
-  }
-  return (
-    <a
-      href={enlace}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2 bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2.5 text-label-lg text-primary hover:bg-primary-fixed/40 transition-colors min-w-0"
-    >
-      <Link2 className="w-4 h-4 shrink-0" />
-      <span className="truncate">{enlace}</span>
-    </a>
-  );
-}
-
-function AdjuntoDocumento({ archivo }: { archivo?: File | { name?: string; size?: number } }) {
-  const nombre = archivo?.name || "Documento adjunto";
-  const extension = nombre.split(".").pop()?.toUpperCase() ?? "DOC";
-  return (
-    <div className="flex items-center gap-3 bg-surface-container-low border border-outline-variant rounded-xl p-3 min-w-0">
-      <div className="w-12 h-12 rounded-xl bg-error-container text-on-error-container flex flex-col items-center justify-center shrink-0">
-        <FileText className="w-5 h-5" />
-        <span className="text-[8px] font-extrabold leading-none mt-0.5">{extension}</span>
-      </div>
-      <div className="min-w-0">
-        <p className="text-label-lg text-on-surface truncate">{nombre}</p>
-        {archivo?.size ? <p className="text-body-sm text-secondary">{formatearTamano(archivo.size)}</p> : null}
-      </div>
-    </div>
-  );
-}
-
-function AdjuntoEvento({ adjunto }: { adjunto: Extract<AdjuntoPublicacion, { tipo: "evento" }> }) {
-  return (
-    <div className="bg-primary-fixed/40 border border-primary-fixed rounded-xl p-3.5 space-y-1.5">
-      <p className="flex items-center gap-2 text-label-lg text-on-surface">
-        <CalendarDays className="w-4 h-4 text-primary shrink-0" />
-        {adjunto.titulo}
-      </p>
-      <p className="text-body-sm text-on-surface-variant pl-6">{formatearFechaEvento(adjunto.fechaHora)}</p>
-      <p className="flex items-center gap-1.5 text-body-sm text-on-surface-variant pl-6">
-        <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-        {adjunto.lugar}
-      </p>
-    </div>
-  );
-}
-
-function Adjunto({ publicacionId, adjunto }: { publicacionId: string; adjunto: AdjuntoPublicacion }) {
-  switch (adjunto.tipo) {
-    case "imagen":
-      return <AdjuntoImagen archivo={adjunto.archivo} />;
-    case "video":
-      return <AdjuntoVideo archivo={adjunto.archivo} enlace={adjunto.enlace} />;
-    case "documento":
-      return <AdjuntoDocumento archivo={adjunto.archivo} />;
-    case "encuesta":
-      return <EncuestaInteractiva publicacionId={publicacionId} encuesta={adjunto} />;
-    case "evento":
-      return <AdjuntoEvento adjunto={adjunto} />;
-  }
-}
+const ADJUNTOS_ABREN_DETALLE = new Set(["imagen", "documento", "evento"]);
 
 interface PublicacionCardProps {
   publicacion: Publicacion;
@@ -138,11 +48,13 @@ interface PublicacionCardProps {
 }
 
 export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProps) {
+  const { abrirPublicacion } = useDetalle();
   const { autor, texto, tema, visibilidad, adjunto, creadaEn, editadaEn } = publicacion;
   const usuarioActualId = getStoredSession()?.user?.id;
   const esPropia = publicacion.autorId === undefined || publicacion.autorId === usuarioActualId;
   const IconoTema = ICONO_TEMA[tema];
   const IconoVisibilidad = ICONO_VISIBILIDAD[visibilidad];
+  const abrirDetalle = () => abrirPublicacion(publicacion.id);
 
   return (
     <article
@@ -191,20 +103,32 @@ export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProp
         </span>
       </div>
 
-      <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap break-words">{texto}</p>
+      <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la publicación">
+        <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap break-words line-clamp-6">{texto}</p>
+      </AreaClicable>
 
-      {adjunto && <Adjunto publicacionId={publicacion.id} adjunto={adjunto} />}
+      {adjunto &&
+        (ADJUNTOS_ABREN_DETALLE.has(adjunto.tipo) ? (
+          <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la publicación">
+            <AdjuntoPublicacion publicacionId={publicacion.id} adjunto={adjunto} />
+          </AreaClicable>
+        ) : (
+          <AdjuntoPublicacion publicacionId={publicacion.id} adjunto={adjunto} />
+        ))}
 
-      <div className="flex items-center justify-between pt-space-xxs">
+      <div className="flex items-center justify-between pt-space-xxs gap-2">
         <span className="inline-flex items-center gap-1 text-label-sm font-inter px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
           <ShieldCheck className="w-3.5 h-3.5" />
           Publicado
         </span>
-        {editadaEn && (
-          <span className="text-label-sm font-inter text-secondary">
-            Editada {formatearTiempoRelativo(editadaEn).toLowerCase()}
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={abrirDetalle}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-secondary-container transition-colors text-label-md font-inter"
+        >
+          <FileText className="w-[18px] h-[18px]" />
+          <span>Más información</span>
+        </button>
       </div>
 
       <SeccionComentarios publicacionId={publicacion.id} />

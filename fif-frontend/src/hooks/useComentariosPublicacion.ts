@@ -10,12 +10,12 @@ import {
 import { getStoredSession } from "@/services/auth";
 import { useAppToast } from "@/context/ToastContext";
 
-export function useComentariosPublicacion(publicacionId: string | number) {
+export function useComentariosPublicacion(publicacionId: string | number, abiertoInicial = false) {
   const showToast = useAppToast();
   const [comentarios, setComentarios] = useState<ComentarioBackend[]>([]);
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(abiertoInicial);
 
   const cargar = useCallback(async () => {
     const numId = Number(publicacionId);

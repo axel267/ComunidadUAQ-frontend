@@ -6,8 +6,7 @@ import {
   Bookmark,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
+  FileText,
   Flag,
   Flame,
   HelpCircle,
@@ -21,9 +20,10 @@ import {
   UserCheck,
   UserPlus,
   Trash2,
-  X,
 } from "lucide-react";
+import { AreaClicable } from "@/components/detalle/AreaClicable";
 import { useComunidad } from "@/context/ComunidadContext";
+import { useDetalle } from "@/context/DetalleContext";
 import { useGuardados } from "@/context/GuardadosContext";
 import { useAppToast } from "@/context/ToastContext";
 import { contarComentarios, type PostComunidad } from "@/data/comunidad";
@@ -72,34 +72,24 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
   const { alternarFuego, alternarInscripcion, comentar, eliminarPost } = useComunidad();
   const { estaGuardado, alternar } = useGuardados();
   const [respuesta, setRespuesta] = useState("");
-  const [fotoIdx, setFotoIdx] = useState<number | null>(null);
+  const { abrirPost } = useDetalle();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  const fotosGaleria = post.galeria
-    ? [post.galeria.principal, post.galeria.secundariaSuperior, post.galeria.secundariaInferior]
-    : [];
-  const foto = fotoIdx !== null ? fotosGaleria[fotoIdx] ?? null : null;
-
   useEffect(() => {
-    if (fotoIdx === null && !menuAbierto) return;
+    if (!menuAbierto) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setFotoIdx(null);
-        setMenuAbierto(false);
-      } else if (fotoIdx !== null && fotosGaleria.length > 1) {
-        if (e.key === "ArrowRight") setFotoIdx((i) => ((i ?? 0) + 1) % fotosGaleria.length);
-        if (e.key === "ArrowLeft") setFotoIdx((i) => ((i ?? 0) - 1 + fotosGaleria.length) % fotosGaleria.length);
-      }
+      if (e.key === "Escape") setMenuAbierto(false);
     };
     const onClick = () => setMenuAbierto(false);
     document.addEventListener("keydown", onKey);
-    if (menuAbierto) window.addEventListener("click", onClick);
+    window.addEventListener("click", onClick);
     return () => {
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("click", onClick);
     };
-  }, [fotoIdx, menuAbierto, fotosGaleria.length]);
+  }, [menuAbierto]);
 
+  const abrirDetalle = () => abrirPost(post.id);
   const guardado = estaGuardado(post.id);
   const totalComentarios = contarComentarios(post);
   const abrirHilo = () => onAbrirComentarios(post.id);
@@ -198,6 +188,17 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
     </button>
   );
 
+  const botonDetalle = (
+    <button
+      type="button"
+      onClick={abrirDetalle}
+      className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-primary hover:bg-primary-fixed/40 text-label-md transition-colors"
+    >
+      <FileText className="w-[18px] h-[18px]" />
+      <span>Más información</span>
+    </button>
+  );
+
   // Convocatoria oficial con banner
   if (post.tipo === "convocatoria" && post.eventoConvocatoria) {
     const ev = post.eventoConvocatoria;
@@ -216,7 +217,7 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
           {botonGuardar}
         </div>
 
-        <div className="relative w-full h-44 bg-surface-container">
+        <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la convocatoria" className="relative w-full h-44 bg-surface-container">
           {/* eslint-disable-next-line @next/next/no-img-element -- imagen remota del diseño de Stitch */}
           <img src={ev.imagenUrl} alt={ev.imagenAlt} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/90 via-inverse-surface/30 to-transparent flex flex-col justify-end p-card-padding">
@@ -225,10 +226,12 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
             </span>
             <h2 className="text-headline-lg text-surface-container-lowest leading-snug">{ev.titulo}</h2>
           </div>
-        </div>
+        </AreaClicable>
 
         <div className="p-card-padding flex flex-col gap-space-xs">
-          <p className="text-body-md text-on-surface">{post.texto}</p>
+          <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la convocatoria">
+            <p className="text-body-md text-on-surface">{post.texto}</p>
+          </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
           <div className="flex flex-wrap gap-2 py-1">
@@ -242,6 +245,7 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
               <Hourglass className="w-4 h-4 text-error" /> {ev.cierre}
             </span>
           </div>
+          <div>{botonDetalle}</div>
           <div className="pt-1 flex items-center gap-space-xs">
             <button
               type="button"
@@ -283,12 +287,12 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
           <HelpCircle className="w-5 h-5 text-secondary shrink-0" />
         </div>
 
-        <div className="bg-surface-container-low p-3.5 rounded-xl">
+        <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la pregunta" className="bg-surface-container-low p-3.5">
           <p className="text-headline-sm text-on-surface mb-1">{post.texto}</p>
           {post.textoSecundario && post.textoSecundario !== post.texto && (
             <p className="text-body-sm text-secondary">{post.textoSecundario}</p>
           )}
-        </div>
+        </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
 
@@ -352,9 +356,10 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         </div>
 
         <div className="flex items-center justify-between pt-space-xs">
-          <div className="flex items-center gap-space-xs">
+          <div className="flex flex-wrap items-center gap-space-xs">
             {botonFuego}
             {botonComentarios}
+            {botonDetalle}
           </div>
           <div className="flex items-center gap-1">
             {botonCompartir}
@@ -449,22 +454,24 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
           </div>
         </div>
 
-        <p className="text-body-md text-on-surface">{post.texto}</p>
+        <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle de la publicación">
+          <p className="text-body-md text-on-surface">{post.texto}</p>
+        </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
 
         {post.galeria && (
           <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden mt-1">
-            <button type="button" aria-label="Ver foto 1" onClick={() => setFotoIdx(0)} className="h-44 bg-surface-container overflow-hidden">
+            <button type="button" aria-label="Ver foto 1" onClick={abrirDetalle} className="h-44 bg-surface-container overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element -- imagen remota del diseño de Stitch */}
               <img src={post.galeria.principal.url} alt={post.galeria.principal.alt} className="w-full h-full object-cover active:scale-105 transition-transform" />
             </button>
             <div className="h-44 flex flex-col gap-2">
-              <button type="button" aria-label="Ver foto 2" onClick={() => setFotoIdx(1)} className="h-[84px] bg-surface-container overflow-hidden rounded-lg">
+              <button type="button" aria-label="Ver foto 2" onClick={abrirDetalle} className="h-[84px] bg-surface-container overflow-hidden rounded-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element -- imagen remota del diseño de Stitch */}
                 <img src={post.galeria.secundariaSuperior.url} alt={post.galeria.secundariaSuperior.alt} className="w-full h-full object-cover" />
               </button>
-              <button type="button" aria-label="Ver más fotos" onClick={() => setFotoIdx(2)} className="h-[84px] bg-surface-container overflow-hidden rounded-lg relative">
+              <button type="button" aria-label="Ver más fotos" onClick={abrirDetalle} className="h-[84px] bg-surface-container overflow-hidden rounded-lg relative">
                 {/* eslint-disable-next-line @next/next/no-img-element -- imagen remota del diseño de Stitch */}
                 <img src={post.galeria.secundariaInferior.url} alt={post.galeria.secundariaInferior.alt} className="w-full h-full object-cover" />
                 {post.galeria.secundariaInferior.extraCount > 0 && (
@@ -478,9 +485,10 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         )}
 
         <div className="flex items-center justify-between pt-space-xs mt-1">
-          <div className="flex items-center gap-space-xs">
+          <div className="flex flex-wrap items-center gap-space-xs">
             {botonFuego}
             {botonComentarios}
+            {botonDetalle}
           </div>
           <div className="flex items-center gap-1">
             {botonCompartir}
@@ -489,51 +497,6 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         </div>
       </article>
 
-      {foto && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Visor de imagen"
-          onClick={() => setFotoIdx(null)}
-          className="fixed inset-0 z-[65] bg-on-surface/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
-        >
-          <button
-            type="button"
-            aria-label="Cerrar imagen"
-            onClick={() => setFotoIdx(null)}
-            className="absolute top-6 right-5 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="relative flex items-center justify-center max-w-full" onClick={(e) => e.stopPropagation()}>
-            {fotosGaleria.length > 1 && (
-              <button
-                type="button"
-                aria-label="Foto anterior"
-                onClick={() => setFotoIdx((i) => ((i ?? 0) - 1 + fotosGaleria.length) % fotosGaleria.length)}
-                className="absolute left-2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
-            {/* eslint-disable-next-line @next/next/no-img-element -- imagen remota del diseño de Stitch */}
-            <img src={foto.url} alt={foto.alt} className="max-w-full max-h-[75vh] rounded-2xl object-contain shadow-2xl" />
-            {fotosGaleria.length > 1 && (
-              <button
-                type="button"
-                aria-label="Siguiente foto"
-                onClick={() => setFotoIdx((i) => ((i ?? 0) + 1) % fotosGaleria.length)}
-                className="absolute right-2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            )}
-          </div>
-          <p className="text-body-sm text-white/90 text-center max-w-md mt-3">
-            {(fotoIdx ?? 0) + 1} / {fotosGaleria.length} • {foto.alt}
-          </p>
-        </div>
-      )}
     </>
   );
 }

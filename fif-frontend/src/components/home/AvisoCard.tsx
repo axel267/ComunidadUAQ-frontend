@@ -1,6 +1,8 @@
 "use client";
 
-import { BadgeCheck, Bookmark, CheckCheck, Download, ImageIcon, Paperclip, Share2 } from "lucide-react";
+import { BadgeCheck, Bookmark, CheckCheck, FileText, ImageIcon, Paperclip, Share2 } from "lucide-react";
+import { AreaClicable } from "@/components/detalle/AreaClicable";
+import { useDetalle } from "@/context/DetalleContext";
 import { useGuardados } from "@/context/GuardadosContext";
 import type { Aviso } from "@/data/avisos";
 import { confirmarLecturaAviso } from "@/services/api";
@@ -12,6 +14,8 @@ interface AvisoCardProps {
 
 export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
   const { estaGuardado, alternar } = useGuardados();
+  const { abrirAviso } = useDetalle();
+  const abrirDetalle = () => abrirAviso(aviso);
   const guardado = estaGuardado(aviso.id);
   const Icono = aviso.icono;
 
@@ -78,13 +82,17 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
         </span>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <AreaClicable onActivar={abrirDetalle} etiqueta="Ver detalle del aviso" className="flex flex-col gap-1">
         <h3 className="text-headline-sm text-on-surface">{aviso.titulo}</h3>
         <p className="text-body-md text-on-surface-variant line-clamp-3">{aviso.descripcion}</p>
-      </div>
+      </AreaClicable>
 
       {aviso.conImagen && (
-        <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container flex items-center justify-center text-outline">
+        <AreaClicable
+          onActivar={abrirDetalle}
+          etiqueta="Ver detalle del aviso"
+          className="relative w-full h-36 overflow-hidden bg-surface-container flex items-center justify-center text-outline"
+        >
           {aviso.imagenUrl ? (
             // Las imágenes de los avisos provienen de URLs administradas por el backend.
             // eslint-disable-next-line @next/next/no-img-element
@@ -104,17 +112,17 @@ export function AvisoCard({ aviso, onToast }: AvisoCardProps) {
               </span>
             </div>
           )}
-        </div>
+        </AreaClicable>
       )}
 
       <div className="flex items-center justify-between pt-space-xs">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => onToast(`Descargando ${aviso.referencia}...`)}
+            onClick={abrirDetalle}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-secondary-container transition-colors text-label-md font-inter"
           >
-            <Download className="w-[18px] h-[18px]" />
-            <span>{aviso.adjunto ? "Descargar PDF" : "Más información"}</span>
+            <FileText className="w-[18px] h-[18px]" />
+            <span>Más información</span>
           </button>
           {aviso.categoria === "urgente" && (
             <button
