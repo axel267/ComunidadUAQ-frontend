@@ -1,7 +1,7 @@
 import { Banknote, Landmark, AlertTriangle, BookOpen } from "lucide-react";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 import type { PostComunidad, ComentarioComunidad, FiltroComunidad } from "@/data/comunidad";
-import type { DatosEncuestaPublicacion, DuracionEncuesta } from "@/data/publicaciones";
+import type { DatosEncuestaPublicacion, DatosEventoPublicacion, DuracionEncuesta } from "@/data/publicaciones";
 import { calcularSiglas } from "@/data/perfil";
 import { getAccessToken, getStoredSession } from "./auth";
 import { mapearComentariosForo, type ComentarioForoBackend } from "./comentariosMapper";
@@ -361,6 +361,7 @@ export interface PublicacionBackend {
   fechaCreacion: string;
   autorId?: number;
   encuesta?: DatosEncuestaPublicacion | null;
+  evento?: DatosEventoPublicacion | null;
   autor: {
     id: number;
     nombre: string;
@@ -395,6 +396,13 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
           votosUsuarios: item.encuesta.votosUsuarios,
         }
       : undefined;
+    const evento = item.evento?.titulo
+      ? {
+          titulo: item.evento.titulo,
+          fechaHora: item.evento.fechaHora,
+          lugar: item.evento.lugar,
+        }
+      : undefined;
 
     return {
       id: String(item.id),
@@ -417,6 +425,7 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
       textoSecundario: item.contenido,
       fuegos: item.votos || 0,
       encuesta,
+      evento,
       comentariosLista,
     };
   });
@@ -435,6 +444,7 @@ export interface CreatePublicacionPayload {
   imagenesUrl?: string;
   autorId?: number;
   encuesta?: DatosEncuestaPublicacion;
+  evento?: DatosEventoPublicacion;
 }
 
 export const createPublicacion = async (data: CreatePublicacionPayload): Promise<PublicacionBackend> => {
@@ -547,4 +557,48 @@ export const deleteComentario = async (id: number | string): Promise<void> => {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Error al eliminar el comentario");
+};
+
+export interface AsistenciaRegistroBackend {
+  id: number;
+  estudianteId: number | null;
+  expediente: string;
+  nombreEstudiante: string;
+  carrera: string | null;
+  eventoTitulo: string;
+  tomadoPorId: number | null;
+  tomadoPorNombre: string;
+  puntosOtorgados?: number;
+  fechaRegistro: string;
+}
+
+export const getAsistenciasLista = async (evento?: string): Promise<AsistenciaRegistroBackend[]> => {
+  const query = evento?.trim() ? `?evento=${encodeURIComponent(evento.trim())}` : "";
+  const res = await fetch(`${API_URL}/foros/asistencias/lista${query}`, { cache: "no-store" });
+  if (!res.ok) return [];
+  return res.json();
+};
+
+export const registrarAsistenciaApi = async (payload: {
+  codigoQrOExpediente: string;
+  eventoTitulo?: string;
+  tomadoPorId?: number;
+}): Promise<AsistenciaRegistroBackend> => {
+  const res = await fetch(`${API_URL}/foros/asistencias/registrar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message || "No se pudo registrar la asistencia");
+  }
+  return res.json();
+};
+
+export const eliminarAsistenciaApi = async (id: number): Promise<void> => {
+  const res = await fetch(`${API_URL}/foros/asistencias/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("No se pudo eliminar el registro de asistencia");
 };

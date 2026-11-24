@@ -20,6 +20,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { CredencialDigital } from "@/components/perfil/CredencialDigital";
 import { ResumenRecompensas } from "@/components/perfil/ResumenRecompensas";
+import {
+  SeccionEventosInstitucionales,
+  extraerEventosInstitucionales,
+} from "@/components/perfil/SeccionEventosInstitucionales";
 import { PublicacionCard } from "@/components/publicar/PublicacionCard";
 import { useAppToast } from "@/context/ToastContext";
 import { useComunidad } from "@/context/ComunidadContext";
@@ -95,6 +99,7 @@ export default function PerfilPage() {
   const avisosGuardados = AVISOS_MOCK.filter((a) => guardados.has(a.id));
   const comunidadGuardados = postsComunidad.filter((p) => guardados.has(p.id));
   const convocatoriasInscritas = postsComunidad.filter((p) => p.eventoConvocatoria?.inscrito);
+  const eventosInstitucionales = extraerEventosInstitucionales(publicaciones, postsComunidad);
 
   const copiarExpediente = async () => {
     try {
@@ -130,6 +135,7 @@ export default function PerfilPage() {
       total:
         avisosGuardados.length +
         comunidadGuardados.length +
+        eventosInstitucionales.length +
         EVENTOS_REGISTRADOS_MOCK.length +
         convocatoriasInscritas.length,
     },
@@ -298,6 +304,11 @@ export default function PerfilPage() {
 
           {pestana === "guardados" && (
             <div id="panel-guardados" role="tabpanel" aria-labelledby="tab-guardados" className="flex flex-col gap-space-md">
+              <SeccionEventosInstitucionales
+                eventos={eventosInstitucionales}
+                onCrearEvento={() => abrirCrear({ tab: "evento", tema: "comunidad" })}
+              />
+
               {avisosGuardados.map((aviso) => (
                 <article
                   key={aviso.id}

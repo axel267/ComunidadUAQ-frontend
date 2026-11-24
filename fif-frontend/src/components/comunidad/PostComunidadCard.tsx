@@ -27,6 +27,7 @@ import { useDetalle } from "@/context/DetalleContext";
 import { useGuardados } from "@/context/GuardadosContext";
 import { useAppToast } from "@/context/ToastContext";
 import { contarComentarios, type PostComunidad } from "@/data/comunidad";
+import { formatearFechaEvento } from "@/data/publicaciones";
 import { getStoredSession } from "@/services/auth";
 import { EncuestaInteractiva } from "@/components/publicar/encuesta/EncuestaInteractiva";
 
@@ -234,6 +235,20 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
           </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
+
+        {post.evento && (
+          <div className="bg-primary-fixed/40 border border-primary-fixed rounded-xl p-3.5 space-y-1.5">
+            <p className="flex items-center gap-2 text-label-lg text-on-surface">
+              <CalendarDays className="w-4 h-4 text-primary shrink-0" />
+              {post.evento.titulo}
+            </p>
+            <p className="text-body-sm text-on-surface-variant pl-6">{formatearFechaEvento(post.evento.fechaHora)}</p>
+            <p className="flex items-center gap-1.5 text-body-sm text-on-surface-variant pl-6">
+              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+              {post.evento.lugar}
+            </p>
+          </div>
+        )}
           <div className="flex flex-wrap gap-2 py-1">
             <span className="flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-lg text-on-surface-variant text-label-md">
               <CalendarDays className="w-4 h-4 text-primary" /> {ev.fecha}
@@ -295,6 +310,20 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
+
+        {post.evento && (
+          <div className="bg-primary-fixed/40 border border-primary-fixed rounded-xl p-3.5 space-y-1.5">
+            <p className="flex items-center gap-2 text-label-lg text-on-surface">
+              <CalendarDays className="w-4 h-4 text-primary shrink-0" />
+              {post.evento.titulo}
+            </p>
+            <p className="text-body-sm text-on-surface-variant pl-6">{formatearFechaEvento(post.evento.fechaHora)}</p>
+            <p className="flex items-center gap-1.5 text-body-sm text-on-surface-variant pl-6">
+              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+              {post.evento.lugar}
+            </p>
+          </div>
+        )}
 
         {ultimas.length > 0 && (
           <div className="flex flex-col gap-2 mt-1 pl-2">
@@ -459,6 +488,20 @@ export function PostComunidadCard({ post, onAbrirComentarios }: PostComunidadCar
         </AreaClicable>
 
         {post.encuesta && <EncuestaInteractiva publicacionId={post.id} encuesta={post.encuesta} />}
+
+        {post.evento && (
+          <div className="bg-primary-fixed/40 border border-primary-fixed rounded-xl p-3.5 space-y-1.5">
+            <p className="flex items-center gap-2 text-label-lg text-on-surface">
+              <CalendarDays className="w-4 h-4 text-primary shrink-0" />
+              {post.evento.titulo}
+            </p>
+            <p className="text-body-sm text-on-surface-variant pl-6">{formatearFechaEvento(post.evento.fechaHora)}</p>
+            <p className="flex items-center gap-1.5 text-body-sm text-on-surface-variant pl-6">
+              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+              {post.evento.lugar}
+            </p>
+          </div>
+        )}
 
         {post.galeria && (
           <div className="grid grid-cols-2 gap-2 rounded-xl overflow-hidden mt-1">

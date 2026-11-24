@@ -1,4 +1,4 @@
-import type { DatosEncuestaPublicacion } from "./publicaciones";
+import type { DatosEncuestaPublicacion, DatosEventoPublicacion } from "./publicaciones";
 
 export type FiltroComunidad = "para-ti" | "carrera" | "tendencias" | "dudas";
 
@@ -105,6 +105,7 @@ export interface PostComunidad {
   fuegos: number;
   fuegoActivo?: boolean;
   encuesta?: DatosEncuestaPublicacion;
+  evento?: DatosEventoPublicacion;
   comentariosLista: ComentarioComunidad[];
 }
 

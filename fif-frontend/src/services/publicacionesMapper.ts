@@ -48,6 +48,15 @@ export function mapearDesdeBackend(
       }
     : undefined;
 
+  const adjuntoEvento: AdjuntoPublicacion | undefined = item.evento?.titulo
+    ? {
+        tipo: "evento",
+        titulo: item.evento.titulo,
+        fechaHora: item.evento.fechaHora,
+        lugar: item.evento.lugar,
+      }
+    : undefined;
+
   const adjuntoImagen: AdjuntoPublicacion | undefined = item.imagenesUrl
     ? ({ tipo: "imagen", archivo: item.imagenesUrl as unknown as File } as AdjuntoPublicacion)
     : undefined;
@@ -60,6 +69,6 @@ export function mapearDesdeBackend(
     visibilidad: "facultad",
     autor: autorDesdeBackend(item, autorSesion),
     creadaEn: new Date(item.fechaCreacion).getTime(),
-    adjunto: adjuntoEncuesta ?? adjuntoExistente ?? adjuntoImagen,
+    adjunto: adjuntoEncuesta ?? adjuntoEvento ?? adjuntoExistente ?? adjuntoImagen,
   };
 }
