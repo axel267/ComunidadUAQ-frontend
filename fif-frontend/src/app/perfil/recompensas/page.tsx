@@ -146,12 +146,7 @@ export default function RecompensasPage() {
                   <div className="flex items-center gap-1.5 mt-1 text-label-sm font-inter text-primary-fixed flex-wrap">
                     <span className="flex items-center gap-0.5 text-on-primary font-medium">
                       <CalendarCheck className="w-3.5 h-3.5" />
-                      +{puntos.eventos} Pts Eventos
-                    </span>
-                    <span className="opacity-60">•</span>
-                    <span className="flex items-center gap-0.5 text-secondary-fixed font-medium">
-                      <HeartHandshake className="w-3.5 h-3.5" />
-                      +{puntos.solidarios} Pts Solidarios
+                      +{puntos.eventos} Pts por Asistencia a Eventos
                     </span>
                   </div>
                 </div>
@@ -224,105 +219,8 @@ export default function RecompensasPage() {
           </div>
         </div>
 
-        {/* Selector de Origen de Insignias */}
-        <div className="px-screen-margin-mobile">
-          <div className="grid grid-cols-3 gap-1 bg-surface-container-high p-1 rounded-xl text-center">
-            <button
-              type="button"
-              onClick={() => setFiltroOrigen("all")}
-              className={`py-2 px-1 rounded-lg text-label-sm font-inter flex items-center justify-center gap-1 transition-all ${
-                filtroOrigen === "all"
-                  ? "bg-surface-container-lowest text-primary font-bold shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface font-semibold"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Todos ({conteosOrigen.all})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltroOrigen("evento")}
-              className={`py-2 px-1 rounded-lg text-label-sm font-inter flex items-center justify-center gap-1 transition-all ${
-                filtroOrigen === "evento"
-                  ? "bg-surface-container-lowest text-primary font-bold shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface font-semibold"
-              }`}
-            >
-              <Landmark className="w-4 h-4" />
-              <span>Eventos ({conteosOrigen.evento})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltroOrigen("solidaridad")}
-              className={`py-2 px-1 rounded-lg text-label-sm font-inter flex items-center justify-center gap-1 transition-all ${
-                filtroOrigen === "solidaridad"
-                  ? "bg-surface-container-lowest text-primary font-bold shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface font-semibold"
-              }`}
-            >
-              <HeartHandshake className="w-4 h-4" />
-              <span>Solidaridad ({conteosOrigen.solidaridad})</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Filtro por Facultad (Scroll Horizontal) */}
-        <div className="flex flex-col gap-1.5">
-          <div className="px-screen-margin-mobile flex items-center justify-between">
-            <span className="text-label-sm font-inter text-on-surface-variant uppercase tracking-wider font-bold">
-              Explorar por Facultad
-            </span>
-            <span className="text-label-sm font-inter text-primary font-semibold">
-              Mostrando {insigniasFiltradas.length} recompensas
-            </span>
-          </div>
-          <div className="flex gap-space-xs overflow-x-auto px-screen-margin-mobile py-space-xxs no-scrollbar">
-            {FACULTADES_FILTRO.map((f) => {
-              const activa = facultad === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFacultad(f.id)}
-                  className={`shrink-0 h-8 px-space-md rounded-full text-label-md transition-all flex items-center gap-1.5 ${
-                    activa
-                      ? "bg-primary text-on-primary shadow-sm font-bold"
-                      : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-normal"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Vitrina de Insignias Oficiales */}
         <div className="px-screen-margin-mobile flex flex-col gap-space-md">
-          {/* Banner Explicativo de Recompensas Solidarias */}
-          {(filtroOrigen === "all" || filtroOrigen === "solidaridad") && (
-            <div className="rounded-xl bg-gradient-to-r from-secondary-container/80 via-primary-fixed/40 to-surface-container-lowest p-space-md border border-primary/10 shadow-sm flex items-start gap-space-sm">
-              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <HeartHandshake className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h4 className="text-headline-sm text-on-surface font-bold">
-                    Puntos por Altruismo y Asesoría
-                  </h4>
-                  <span className="bg-primary text-on-primary text-label-sm font-inter px-2 py-0.5 rounded-full font-bold">
-                    +{PUNTOS_POR_APORTE_SOLIDARIO} Pts c/u
-                  </span>
-                </div>
-                <p className="text-body-sm text-on-surface-variant mt-0.5">
-                  Tus comentarios marcados como <strong>&apos;Respuesta Solidaria&apos;</strong> o de{" "}
-                  <strong>&apos;Apoyo Útil&apos;</strong> en el muro y foros suman puntos directos y desbloquean
-                  rangos de honor en el campus.
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Listado de tarjetas de insignias */}
           {insigniasFiltradas.map((insignia) => (
             <InsigniaCard
@@ -339,20 +237,10 @@ export default function RecompensasPage() {
               <div className="w-14 h-14 rounded-full bg-surface-container-low flex items-center justify-center text-secondary mb-3">
                 <SearchX className="w-7 h-7" />
               </div>
-              <h4 className="text-headline-sm text-on-surface">Sin insignias registradas</h4>
+              <h4 className="text-headline-sm text-on-surface">Sin asistencias registradas</h4>
               <p className="text-body-sm text-on-surface-variant max-w-xs mt-1">
-                Participa en eventos oficiales de esta facultad para desbloquear nuevas recompensas institucionales.
+                Asiste a eventos institucionales y valida tu credencial por QR para acumular +100 Pts por evento.
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setFacultad("all");
-                  setFiltroOrigen("all");
-                }}
-                className="mt-4 px-space-md h-9 rounded-lg bg-surface-container-high text-on-surface text-label-md hover:bg-surface-container transition-colors"
-              >
-                Ver todas las facultades
-              </button>
             </div>
           )}
         </div>
