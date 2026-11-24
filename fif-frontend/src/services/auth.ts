@@ -166,3 +166,48 @@ export const cambiarContrasenaApi = async (
   return parseJsonResponse(res, 'No se pudo cambiar la contrasena.');
 };
 
+export interface UpdateProfilePayload {
+  userId: number;
+  nombre?: string;
+  carrera?: string;
+  semestre?: string;
+  campus?: string;
+  biografia?: string;
+  telefono?: string;
+  intereses?: string[];
+}
+
+export const updateProfileApi = async (
+  payload: UpdateProfilePayload
+): Promise<{ message: string; user: AuthUser }> => {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/sessions/profile`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return parseJsonResponse(res, 'No se pudo actualizar el perfil.');
+};
+
+export const getUserApi = async (userId: number): Promise<AuthUser> => {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/sessions/user/${userId}`, {
+    method: 'GET',
+    headers,
+  });
+  return parseJsonResponse(res, 'No se pudo obtener la informacion del usuario.');
+};
+
+

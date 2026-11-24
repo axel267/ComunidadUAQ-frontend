@@ -2,7 +2,8 @@ import { Banknote, Landmark, AlertTriangle, BookOpen } from "lucide-react";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 import type { PostComunidad, ComentarioComunidad, FiltroComunidad } from "@/data/comunidad";
 import { calcularSiglas } from "@/data/perfil";
-import { getAccessToken } from "./auth";
+import { getAccessToken, getStoredSession } from "./auth";
+import { mapearComentariosForo, type ComentarioForoBackend } from "./comentariosMapper";
 
 export const getApiBaseUrl = (): string => {
   if (
@@ -356,22 +357,13 @@ export interface PublicacionBackend {
   esFijado: boolean;
   imagenesUrl?: string | null;
   fechaCreacion: string;
+  autorId?: number;
   autor: {
     id: number;
     nombre: string;
     carrera?: string;
   };
-  comentarios?: {
-    id: number;
-    contenido: string;
-    votos: number;
-    fechaCreacion: string;
-    autor: {
-      id: number;
-      nombre: string;
-      carrera?: string;
-    };
-  }[];
+  comentarios?: ComentarioForoBackend[];
 }
 
 export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
@@ -379,6 +371,7 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
   if (!res.ok) throw new Error("Error al obtener las publicaciones de la comunidad");
 
   const datos: PublicacionBackend[] = await res.json();
+  const usuarioActualId = getStoredSession()?.user?.id;
 
   return datos.map((item) => {
     // Clasificar en los filtros de la interfaz
@@ -389,18 +382,7 @@ export const getPostsComunidad = async (): Promise<PostComunidad[]> => {
     }
     categoriasFiltro.push("carrera");
 
-    // Mapear comentarios reales asociados a cada post
-    const comentariosLista: ComentarioComunidad[] = (item.comentarios || []).map((c) => ({
-      id: String(c.id),
-      autor: c.autor.nombre,
-      siglas: calcularSiglas(c.autor.nombre),
-      avatarClases: "bg-surface-variant text-on-surface-variant",
-      tiempo: new Date(c.fechaCreacion).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
-      creadoEn: new Date(c.fechaCreacion).getTime(),
-      texto: c.contenido,
-      likes: c.votos || 0,
-      respuestas: [],
-    }));
+    const comentariosLista: ComentarioComunidad[] = mapearComentariosForo(item.comentarios, usuarioActualId);
 
     return {
       id: String(item.id),
@@ -490,6 +472,16 @@ export interface ComentarioBackend {
     carrera?: string;
   };
 }
+
+export const getComentariosByPublicacion = async (
+  publicacionId: number | string
+): Promise<ComentarioBackend[]> => {
+  const res = await fetch(`${API_URL}/foros/${publicacionId}/comentarios`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  return res.json();
+};
 
 export const createComentario = async (data: CreateComentarioPayload): Promise<ComentarioBackend> => {
   const res = await fetch(`${API_URL}/foros/comentarios`, {

@@ -3,195 +3,168 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AUTOR_MOCK,
+  type AdjuntoPublicacion,
   type AutorPublicacion,
   type NuevaPublicacion,
   type Publicacion,
-  type TemaPublicacion,
 } from "@/data/publicaciones";
-import {
-  getPostsPorAutor,
-  createPublicacion,
-  deletePublicacion,
-  type PublicacionBackend,
-} from "@/services/api";
+import { getPostsPorAutor, createPublicacion, deletePublicacion } from "@/services/api";
 import { getStoredSession } from "@/services/auth";
-
-const STORAGE_KEY = "fif_publicaciones_usuario";
+import { esIdTemporal, mapearDesdeBackend } from "@/services/publicacionesMapper";
+import {
+  guardarPublicacionesLocales,
+  leerPublicacionesLocales,
+  limpiarStorageLegado,
+} from "@/services/publicacionesStorage";
 
 function nuevoId() {
   return `pub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function parsearTema(categoria?: string): TemaPublicacion {
-  if (categoria === "hub" || categoria === "academico" || categoria === "ventas" || categoria === "comunidad") {
-    return categoria;
-  }
-  return "comunidad";
+function obtenerUserId(): number | undefined {
+  return getStoredSession()?.user?.id;
 }
 
-function mapearDesdeBackend(item: PublicacionBackend, autor: AutorPublicacion): Publicacion {
-  return {
-    id: String(item.id),
-    texto: item.titulo,
-    tema: parsearTema(item.categoria),
-    visibilidad: "facultad",
-    autor: {
-      nombre: item.autor?.nombre || autor.nombre,
-      siglas: autor.siglas,
-      facultad: autor.facultad,
-      etiqueta: autor.etiqueta,
-    },
-    creadaEn: new Date(item.fechaCreacion).getTime(),
-  };
+function serializarAdjunto(adjunto?: AdjuntoPublicacion): AdjuntoPublicacion | undefined {
+  if (adjunto?.tipo !== "documento" || !(adjunto.archivo instanceof File)) return adjunto;
+  const { name, size, type } = adjunto.archivo;
+  return { ...adjunto, archivo: { name, size, type } as unknown as File };
+}
+
+function leerComoDataUrl(archivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(archivo);
+  });
 }
 
 export function usePublicaciones(autor: AutorPublicacion = AUTOR_MOCK) {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
 
+  const aplicar = useCallback((cambio: (prev: Publicacion[]) => Publicacion[]) => {
+    setPublicaciones((prev) => {
+      const siguiente = cambio(prev);
+      guardarPublicacionesLocales(obtenerUserId(), siguiente);
+      return siguiente;
+    });
+  }, []);
+
   useEffect(() => {
-    try {
-      const guardadas = localStorage.getItem(STORAGE_KEY);
-      if (guardadas) {
-        const parsed = JSON.parse(guardadas);
-        if (Array.isArray(parsed)) {
-          const limpias = parsed.map((p) => {
-            if (
-              p.adjunto?.tipo === "imagen" &&
-              p.adjunto.archivo &&
-              typeof p.adjunto.archivo !== "string" &&
-              !(p.adjunto.archivo instanceof Blob)
-            ) {
-              return { ...p, adjunto: undefined };
-            }
-            return p;
-          });
-          setPublicaciones(limpias);
-        }
-      }
-    } catch {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch {}
+    limpiarStorageLegado();
+    const userId = obtenerUserId();
+    if (!userId) {
+      setPublicaciones([]);
+      return;
     }
 
-    const session = getStoredSession();
-    const userId = session?.user?.id ?? 2;
+    const locales = leerPublicacionesLocales(userId);
+    setPublicaciones(locales);
 
     getPostsPorAutor(userId)
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const remotas = data.map((item) => mapearDesdeBackend(item, autor));
-          setPublicaciones(remotas);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(remotas));
-          } catch {}
-        }
+        const propias = (Array.isArray(data) ? data : []).filter(
+          (item) => (item.autorId ?? item.autor?.id) === userId
+        );
+        const remotas = propias.map((item) => {
+          const local = locales.find((p) => p.id === String(item.id));
+          return mapearDesdeBackend(item, autor, local?.adjunto);
+        });
+        const pendientes = locales.filter((p) => esIdTemporal(p.id));
+        aplicar(() => [...pendientes, ...remotas]);
       })
       .catch((err) => {
-        console.error("Error al sincronizar publicaciones del usuario:", err);
+        console.error("[ERROR] Sincronizando publicaciones del usuario:", err);
       });
-  }, [autor]);
+  }, [autor, aplicar]);
+
+  const adjuntarImagenLocal = useCallback(
+    (tempId: string, archivo: File) => {
+      leerComoDataUrl(archivo)
+        .then((dataUrl) =>
+          aplicar((prev) =>
+            prev.map((p) =>
+              p.id === tempId
+                ? { ...p, adjunto: { tipo: "imagen" as const, archivo: dataUrl as unknown as File } }
+                : p
+            )
+          )
+        )
+        .catch(() => {});
+    },
+    [aplicar]
+  );
 
   const crear = useCallback(
     (datos: NuevaPublicacion) => {
-      const session = getStoredSession();
-      const userId = session?.user?.id ?? 2;
-      const temporal: Publicacion = { ...datos, id: nuevoId(), autor, creadaEn: Date.now() };
+      const userId = obtenerUserId();
+      const tempId = nuevoId();
+      const temporal: Publicacion = {
+        ...datos,
+        adjunto: serializarAdjunto(datos.adjunto),
+        id: tempId,
+        autorId: userId,
+        autor,
+        creadaEn: Date.now(),
+      };
 
-      setPublicaciones((prev) => {
-        const siguiente = [temporal, ...prev];
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(siguiente));
-        } catch {}
-        return siguiente;
-      });
+      aplicar((prev) => [temporal, ...prev]);
 
       if (datos.adjunto?.tipo === "imagen" && datos.adjunto.archivo instanceof File) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result as string;
-          setPublicaciones((prev) => {
-            const actualizada = prev.map((p) =>
-              p.id === temporal.id
-                ? {
-                    ...p,
-                    adjunto: { tipo: "imagen" as const, archivo: dataUrl as unknown as File },
-                  }
-                : p
-            );
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada));
-            } catch {}
-            return actualizada;
-          });
-        };
-        reader.readAsDataURL(datos.adjunto.archivo);
+        adjuntarImagenLocal(tempId, datos.adjunto.archivo);
       }
+
+      const imgUrlRemota =
+        datos.adjunto?.tipo === "imagen" && typeof datos.adjunto.archivo === "string"
+          ? datos.adjunto.archivo
+          : undefined;
 
       createPublicacion({
         titulo: datos.texto.slice(0, 100),
         contenido: datos.texto,
         categoria: datos.tema || "comunidad",
+        imagenesUrl: imgUrlRemota,
         autorId: userId,
       })
-        .then((creadaEnBackend) => {
-          setPublicaciones((prev) => {
-            const actualizada = prev.map((p) =>
-              p.id === temporal.id ? { ...p, id: String(creadaEnBackend.id) } : p
-            );
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizada));
-            } catch {}
-            return actualizada;
-          });
-        })
-        .catch((e) => {
-          console.error("Error persistiendo publicacion en backend:", e);
-        });
+        .then((creada) =>
+          aplicar((prev) => prev.map((p) => (p.id === tempId ? { ...p, id: String(creada.id) } : p)))
+        )
+        .catch((e) => console.error("[ERROR] Persistiendo publicacion en backend:", e));
 
       return temporal;
     },
-    [autor]
+    [autor, aplicar, adjuntarImagenLocal]
   );
 
-  const editar = useCallback((id: string, datos: NuevaPublicacion) => {
-    setPublicaciones((actuales) => {
-      const actualizadas = actuales.map((p) =>
-        p.id === id ? { ...p, ...datos, editadaEn: Date.now() } : p
+  const editar = useCallback(
+    (id: string, datos: NuevaPublicacion) => {
+      aplicar((prev) => prev.map((p) => (p.id === id ? { ...p, ...datos, editadaEn: Date.now() } : p)));
+    },
+    [aplicar]
+  );
+
+  const eliminar = useCallback(
+    (id: string) => {
+      const numId = Number(id);
+      if (!Number.isNaN(numId)) {
+        deletePublicacion(numId).catch(() => {});
+      }
+      aplicar((prev) => prev.filter((p) => p.id !== id));
+    },
+    [aplicar]
+  );
+
+  const restaurar = useCallback(
+    (publicacion: Publicacion) => {
+      aplicar((prev) =>
+        prev.some((p) => p.id === publicacion.id)
+          ? prev
+          : [...prev, publicacion].sort((a, b) => b.creadaEn - a.creadaEn)
       );
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizadas));
-      } catch {}
-      return actualizadas;
-    });
-  }, []);
-
-  const eliminar = useCallback((id: string) => {
-    const numId = Number(id);
-    if (!Number.isNaN(numId)) {
-      deletePublicacion(numId).catch(() => {});
-    }
-
-    setPublicaciones((actuales) => {
-      const filtradas = actuales.filter((p) => p.id !== id);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtradas));
-      } catch {}
-      return filtradas;
-    });
-  }, []);
-
-  const restaurar = useCallback((publicacion: Publicacion) => {
-    setPublicaciones((actuales) => {
-      const lista = actuales.some((p) => p.id === publicacion.id)
-        ? actuales
-        : [...actuales, publicacion].sort((a, b) => b.creadaEn - a.creadaEn);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-      } catch {}
-      return lista;
-    });
-  }, []);
+    },
+    [aplicar]
+  );
 
   return { publicaciones, crear, editar, eliminar, restaurar };
 }

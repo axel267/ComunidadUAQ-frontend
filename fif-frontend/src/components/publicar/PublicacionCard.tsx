@@ -18,6 +18,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
+import { getStoredSession } from "@/services/auth";
+import { SeccionComentarios } from "./comentarios/SeccionComentarios";
 import {
   DURACIONES_ENCUESTA,
   etiquetaTema,
@@ -81,8 +83,9 @@ function AdjuntoVideo({ archivo, enlace }: { archivo?: File; enlace?: string }) 
   );
 }
 
-function AdjuntoDocumento({ archivo }: { archivo: File }) {
-  const extension = archivo.name.split(".").pop()?.toUpperCase() ?? "DOC";
+function AdjuntoDocumento({ archivo }: { archivo?: File | { name?: string; size?: number } }) {
+  const nombre = archivo?.name || "Documento adjunto";
+  const extension = nombre.split(".").pop()?.toUpperCase() ?? "DOC";
   return (
     <div className="flex items-center gap-3 bg-surface-container-low border border-outline-variant rounded-xl p-3 min-w-0">
       <div className="w-12 h-12 rounded-xl bg-error-container text-on-error-container flex flex-col items-center justify-center shrink-0">
@@ -90,8 +93,8 @@ function AdjuntoDocumento({ archivo }: { archivo: File }) {
         <span className="text-[8px] font-extrabold leading-none mt-0.5">{extension}</span>
       </div>
       <div className="min-w-0">
-        <p className="text-label-lg text-on-surface truncate">{archivo.name}</p>
-        <p className="text-body-sm text-secondary">{formatearTamano(archivo.size)}</p>
+        <p className="text-label-lg text-on-surface truncate">{nombre}</p>
+        {archivo?.size ? <p className="text-body-sm text-secondary">{formatearTamano(archivo.size)}</p> : null}
       </div>
     </div>
   );
@@ -159,6 +162,8 @@ interface PublicacionCardProps {
 
 export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProps) {
   const { autor, texto, tema, visibilidad, adjunto, creadaEn, editadaEn } = publicacion;
+  const usuarioActualId = getStoredSession()?.user?.id;
+  const esPropia = publicacion.autorId === undefined || publicacion.autorId === usuarioActualId;
   const IconoTema = ICONO_TEMA[tema];
   const IconoVisibilidad = ICONO_VISIBILIDAD[visibilidad];
 
@@ -175,9 +180,11 @@ export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProp
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-headline-sm text-on-surface truncate">{autor.nombre}</span>
-              <span className="text-label-sm font-inter px-1.5 py-0.5 rounded-md bg-primary-fixed text-on-primary-fixed shrink-0">
-                Tú
-              </span>
+              {esPropia && (
+                <span className="text-label-sm font-inter px-1.5 py-0.5 rounded-md bg-primary-fixed text-on-primary-fixed shrink-0">
+                  Tú
+                </span>
+              )}
             </div>
             <span className="text-label-sm font-inter text-on-surface-variant truncate">
               {autor.facultad} • {formatearTiempoRelativo(creadaEn)}
@@ -222,6 +229,8 @@ export function PublicacionCard({ publicacion, onOpciones }: PublicacionCardProp
           </span>
         )}
       </div>
+
+      <SeccionComentarios publicacionId={publicacion.id} />
     </article>
   );
 }

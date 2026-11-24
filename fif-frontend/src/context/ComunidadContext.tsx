@@ -16,6 +16,7 @@ import {
   votarComentario,
   deleteComentario,
 } from "@/services/api";
+import { getStoredSession } from "@/services/auth";
 
 interface ComunidadContextValue {
   posts: PostComunidad[];
@@ -115,15 +116,21 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
       actualizarComentarios(postId, (lista) => [...lista, nuevo]);
 
       const numPostId = Number(postId);
-      if (!Number.isNaN(numPostId)) {
-        createComentario({ publicacionId: numPostId, contenido: limpio })
-          .then((backendComentario) => {
-            actualizarComentarios(postId, (lista) =>
-              lista.map((c) => (c.id === nuevo.id ? { ...c, id: String(backendComentario.id) } : c))
-            );
-          })
-          .catch(() => {});
-      }
+      if (Number.isNaN(numPostId)) return;
+      createComentario({
+        publicacionId: numPostId,
+        contenido: limpio,
+        autorId: getStoredSession()?.user?.id,
+      })
+        .then((backendComentario) => {
+          actualizarComentarios(postId, (lista) =>
+            lista.map((c) => (c.id === nuevo.id ? { ...c, id: String(backendComentario.id) } : c))
+          );
+        })
+        .catch((err) => {
+          console.error("[ERROR] Guardando comentario:", err);
+          actualizarComentarios(postId, (lista) => lista.filter((c) => c.id !== nuevo.id));
+        });
     },
     [actualizarComentarios, autorActual]
   );
@@ -142,9 +149,26 @@ export function ComunidadProvider({ children }: { children: ReactNode }) {
         texto: limpio,
         likes: 0,
       };
-      actualizarComentarios(postId, (lista) =>
-        lista.map((c) => (c.id === comentarioId ? { ...c, respuestas: [...c.respuestas, nueva] } : c))
-      );
+      const conRespuestas = (cambio: (r: RespuestaComentario[]) => RespuestaComentario[]) =>
+        actualizarComentarios(postId, (lista) =>
+          lista.map((c) => (c.id === comentarioId ? { ...c, respuestas: cambio(c.respuestas) } : c))
+        );
+      conRespuestas((r) => [...r, nueva]);
+
+      const numPostId = Number(postId);
+      const numPadreId = Number(comentarioId);
+      if (Number.isNaN(numPostId) || Number.isNaN(numPadreId)) return;
+      createComentario({
+        publicacionId: numPostId,
+        comentarioPadreId: numPadreId,
+        contenido: mencion ? `@${mencion} ${limpio}` : limpio,
+        autorId: getStoredSession()?.user?.id,
+      })
+        .then((creada) => conRespuestas((r) => r.map((x) => (x.id === nueva.id ? { ...x, id: String(creada.id) } : x))))
+        .catch((err) => {
+          console.error("[ERROR] Guardando respuesta:", err);
+          conRespuestas((r) => r.filter((x) => x.id !== nueva.id));
+        });
     },
     [actualizarComentarios, autorActual]
   );

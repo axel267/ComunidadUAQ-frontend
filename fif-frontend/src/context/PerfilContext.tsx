@@ -10,18 +10,45 @@ import {
   type CampusPerfil,
 } from "@/data/perfil";
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
-import { getStoredSession, cambiarContrasenaApi } from "@/services/auth";
+import { getStoredSession, cambiarContrasenaApi, updateProfileApi, getUserApi, type AuthUser } from "@/services/auth";
 /** Solo campos editables por el alumno; correo institucional y expediente están bloqueados por Control Escolar. */
 export type CambiosPerfilEditables = Partial<
-  Pick<PerfilEstudiante, "nombre" | "campus" | "biografia" | "telefono" | "intereses">
+  Pick<PerfilEstudiante, "nombre" | "carrera" | "semestre" | "campus" | "biografia" | "telefono" | "intereses">
 >;
 
 export type ResultadoCambioPassword = { ok: true } | { ok: false; motivo: string };
 
+function mapUserToPerfil(u: AuthUser, prev: PerfilEstudiante): PerfilEstudiante {
+  const facultadPrincipal = u.facultades?.[0];
+  const campusOpciones: readonly string[] = [...CAMPUSES_UAQ, "No definido"];
+  const campus = campusOpciones.includes(u.campus ?? "")
+    ? (u.campus as CampusPerfil)
+    : "No definido";
+  const nombre = u.nombre?.trim() || prev.nombre;
+
+  return {
+    ...prev,
+    nombre,
+    nombreCredencial: nombre,
+    siglas: calcularSiglas(nombre),
+    correoInstitucional: u.email || prev.correoInstitucional || "No definido",
+    expediente: u.expediente != null ? String(u.expediente) : prev.expediente || "No definido",
+    carrera: u.carrera?.trim() || "No definido",
+    semestre: u.semestre?.trim() || "No definido",
+    facultad: facultadPrincipal?.nombre || prev.facultad || "No definido",
+    facultadSigla: facultadPrincipal?.abreviatura || prev.facultadSigla || "ND",
+    campus,
+    biografia: u.biografia?.trim() || "No definido",
+    telefono: u.telefono?.trim() || "No definido",
+    intereses: Array.isArray(u.intereses) ? u.intereses : prev.intereses || [],
+    estatus: u.rol === "Estudiante" ? "Alumno Regular" : u.rol || "No definido",
+  };
+}
+
 interface PerfilContextValue {
   perfil: PerfilEstudiante;
   ajustes: AjustesCuenta;
-  actualizarPerfil: (cambios: CambiosPerfilEditables) => void;
+  actualizarPerfil: (cambios: CambiosPerfilEditables) => Promise<void>;
   actualizarPrivacidad: (cambios: Partial<AjustesCuenta["privacidad"]>) => void;
   actualizarNotificaciones: (cambios: Partial<AjustesCuenta["notificaciones"]>) => void;
   alternarDobleFactor: () => boolean;
@@ -35,14 +62,18 @@ const PerfilContext = createContext<PerfilContextValue | null>(null);
 export function PerfilProvider({ children }: { children: ReactNode }) {
   const [perfil, setPerfil] = useState<PerfilEstudiante>(PERFIL_MOCK);
   const [ajustes, setAjustes] = useState<AjustesCuenta>(AJUSTES_INICIALES);
-  const actualizarPerfil = useCallback((cambios: CambiosPerfilEditables) => {
+
+  const actualizarPerfil = useCallback(async (cambios: CambiosPerfilEditables) => {
     setPerfil((actual) => {
       const nombreLimpio = cambios.nombre !== undefined ? cambios.nombre.trim() : actual.nombre;
       const nombreFinal = nombreLimpio || actual.nombre;
       return {
         ...actual,
         nombre: nombreFinal,
+        nombreCredencial: nombreFinal,
         siglas: calcularSiglas(nombreFinal),
+        carrera: cambios.carrera !== undefined ? cambios.carrera.trim() || "No definido" : actual.carrera,
+        semestre: cambios.semestre !== undefined ? cambios.semestre.trim() || "No definido" : actual.semestre,
         campus: cambios.campus ?? actual.campus,
         biografia:
           cambios.biografia !== undefined
@@ -55,35 +86,58 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
         intereses: cambios.intereses ?? actual.intereses,
       };
     });
+
+    const session = getStoredSession();
+    if (session?.user?.id) {
+      try {
+        const res = await updateProfileApi({
+          userId: session.user.id,
+          nombre: cambios.nombre,
+          carrera: cambios.carrera,
+          semestre: cambios.semestre,
+          campus: cambios.campus,
+          biografia: cambios.biografia,
+          telefono: cambios.telefono,
+          intereses: cambios.intereses,
+        });
+
+        const updatedUser = {
+          ...session.user,
+          ...res.user,
+        };
+        const updatedSession = {
+          ...session,
+          user: updatedUser,
+        };
+        localStorage.setItem("auth_user", JSON.stringify(updatedUser));
+        localStorage.setItem("fif_session", JSON.stringify(updatedSession));
+
+        setPerfil((prev) => mapUserToPerfil(updatedUser, prev));
+      } catch (err) {
+        console.error("Error al persistir cambios en backend:", err);
+        throw err;
+      }
+    }
   }, []);
+
   useEffect(() => {
     const session = getStoredSession();
+    if (session?.user) {
+      setPerfil((prev) => mapUserToPerfil(session.user, prev));
 
-    if (session && session.user) {
-      const u = session.user;
-      const facultadPrincipal = u.facultades?.[0];
-      const campusOpciones: readonly string[] = [...CAMPUSES_UAQ, "No definido"];
-      const campus = campusOpciones.includes(u.campus ?? "")
-        ? (u.campus as CampusPerfil)
-        : "No definido";
-
-      setPerfil((prev) => ({
-        ...prev,
-        nombre: u.nombre,
-        nombreCredencial: u.nombre,
-        siglas: calcularSiglas(u.nombre),
-        correoInstitucional: u.email || "No definido",
-        expediente: u.expediente != null ? String(u.expediente) : "No definido",
-        carrera: u.carrera?.trim() || "No definido",
-        semestre: u.semestre?.trim() || "No definido",
-        facultad: facultadPrincipal?.nombre || "No definido",
-        facultadSigla: facultadPrincipal?.abreviatura || "ND",
-        campus,
-        biografia: u.biografia?.trim() || "No definido",
-        telefono: u.telefono?.trim() || "No definido",
-        intereses: u.intereses || [],
-        estatus: u.rol === "Estudiante" ? "Alumno Regular" : u.rol || "No definido",
-      }));
+      if (session.user.id) {
+        getUserApi(session.user.id)
+          .then((freshUser) => {
+            if (freshUser) {
+              const merged = { ...session.user, ...freshUser };
+              localStorage.setItem("auth_user", JSON.stringify(merged));
+              setPerfil((prev) => mapUserToPerfil(merged, prev));
+            }
+          })
+          .catch((err) => {
+            console.error("Error al cargar perfil actualizado:", err);
+          });
+      }
     }
   }, []);
   const actualizarPrivacidad = useCallback((cambios: Partial<AjustesCuenta["privacidad"]>) => {

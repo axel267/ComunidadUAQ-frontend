@@ -141,18 +141,24 @@ export default function AjustesPerfilPage() {
   } = usePerfil();
   const { abrirCrear, hojas } = useGestionPublicacion();
 
-  type PerfilEditable = Pick<PerfilEstudiante, "nombre" | "campus" | "telefono" | "biografia" | "intereses">;
+  type PerfilEditable = Pick<
+    PerfilEstudiante,
+    "nombre" | "carrera" | "semestre" | "campus" | "telefono" | "biografia" | "intereses"
+  >;
   const [perfilDraft, setPerfilDraft] = useState<Partial<PerfilEditable>>({});
-  const actualizarDraft = <K extends keyof PerfilEditable,>(campo: K, valor: PerfilEditable[K]) => {
+  const actualizarDraft = <K extends keyof PerfilEditable>(campo: K, valor: PerfilEditable[K]) => {
     setPerfilDraft((actual) => ({ ...actual, [campo]: valor }));
   };
   const nombre = perfilDraft.nombre ?? perfil.nombre;
+  const carrera = perfilDraft.carrera ?? perfil.carrera;
+  const semestre = perfilDraft.semestre ?? perfil.semestre;
   const campus = perfilDraft.campus ?? perfil.campus;
   const telefono = perfilDraft.telefono ?? perfil.telefono;
   const biografia = perfilDraft.biografia ?? perfil.biografia;
   const intereses = perfilDraft.intereses ?? perfil.intereses;
 
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const hayCambiosPerfil = useMemo(() => {
     const interesesIguales =
@@ -160,12 +166,14 @@ export default function AjustesPerfilPage() {
       intereses.every((tag) => perfil.intereses.includes(tag));
     return (
       nombre.trim() !== perfil.nombre ||
+      carrera !== perfil.carrera ||
+      semestre !== perfil.semestre ||
       campus !== perfil.campus ||
       telefono.trim() !== perfil.telefono ||
       biografia.trim() !== perfil.biografia ||
       !interesesIguales
     );
-  }, [nombre, campus, telefono, biografia, intereses, perfil]);
+  }, [nombre, carrera, semestre, campus, telefono, biografia, intereses, perfil]);
 
   const toggleInteres = (tag: string) => {
     actualizarDraft(
@@ -174,17 +182,25 @@ export default function AjustesPerfilPage() {
     );
   };
 
-  const guardarPerfil = (e: React.FormEvent) => {
+  const guardarPerfil = async (e: React.FormEvent) => {
     e.preventDefault();
     if (nombre.trim().length < 2) {
       showToast("El nombre visible debe tener al menos 2 caracteres", { tipo: "advertencia" });
       return;
     }
-    actualizarPerfil({ nombre, campus, telefono, biografia, intereses });
-    showToast("Cambios guardados en tu perfil", {
-      tipo: "exito",
-      detalle: "Tu información pública ya está actualizada.",
-    });
+    setGuardando(true);
+    try {
+      await actualizarPerfil({ nombre, carrera, semestre, campus, telefono, biografia, intereses });
+      setPerfilDraft({});
+      showToast("Cambios guardados en la base de datos", {
+        tipo: "exito",
+        detalle: "Tu información pública ya está sincronizada.",
+      });
+    } catch {
+      showToast("Error al guardar cambios en el servidor", { tipo: "error" });
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const handleToggle2FA = () => {
@@ -339,6 +355,45 @@ export default function AjustesPerfilPage() {
               </p>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+              <div className="space-y-1">
+                <label htmlFor="ajuste-carrera" className="block text-label-md text-on-surface-variant">
+                  Carrera / Licenciatura
+                </label>
+                <input
+                  id="ajuste-carrera"
+                  type="text"
+                  maxLength={100}
+                  value={carrera === "No definido" ? "" : carrera}
+                  onChange={(e) => actualizarDraft("carrera", e.target.value.trim() ? e.target.value : "No definido")}
+                  placeholder="Ej. Licenciatura en Informática"
+                  className={inputBase}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="ajuste-semestre" className="block text-label-md text-on-surface-variant">
+                  Semestre
+                </label>
+                <div className="relative">
+                  <select
+                    id="ajuste-semestre"
+                    value={semestre}
+                    onChange={(e) => actualizarDraft("semestre", e.target.value)}
+                    className={`${inputBase} appearance-none pr-9 cursor-pointer`}
+                  >
+                    <option value="No definido">Semestre no definido</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                      <option key={num} value={String(num)}>
+                        {num}º Semestre
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-outline absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1">
               <label htmlFor="ajuste-campus" className="block text-label-md text-on-surface-variant">
                 Campus habitual
@@ -430,11 +485,11 @@ export default function AjustesPerfilPage() {
 
             <button
               type="submit"
-              disabled={!hayCambiosPerfil || nombre.trim().length < 2}
+              disabled={guardando || !hayCambiosPerfil || nombre.trim().length < 2}
               className="mt-space-xs w-full h-11 rounded-xl bg-primary text-on-primary text-label-lg shadow-sm hover:bg-primary-container disabled:opacity-45 disabled:hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <Save className="w-4 h-4" />
-              Guardar cambios del perfil
+              {guardando ? "Guardando en la base de datos..." : "Guardar cambios del perfil"}
             </button>
           </form>
         </section>

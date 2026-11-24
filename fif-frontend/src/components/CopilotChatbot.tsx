@@ -45,7 +45,7 @@ function CopilotGlobalActions() {
         name: "ruta",
         type: "string",
         description:
-          "Ruta de la aplicación. Opciones: '/' (Anuncios), '/comunidad' (Comunidad y Hub), '/perfil' (Perfil y Credencial QR), '/perfil/recompensas' (Recompensas), '/perfil/ajustes' (Ajustes), '/facultades' (Facultades)",
+          "Ruta interna de la aplicación. Opciones válidas: '/tramites' (trámites escolares, titulación, reinscripción, constancias), '/' (Tablón de Anuncios y convocatorias), '/comunidad' (Comunidad y Hub), '/perfil' (Perfil y Credencial QR), '/perfil/recompensas' (Recompensas), '/perfil/ajustes' (Ajustes)",
         required: true,
       },
       {

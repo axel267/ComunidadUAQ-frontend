@@ -66,6 +66,7 @@ export interface NuevaPublicacion {
 // Publicación ya creada por el usuario (hasta que exista persistencia real vive solo en memoria).
 export interface Publicacion extends NuevaPublicacion {
   id: string;
+  autorId?: number;
   autor: AutorPublicacion;
   creadaEn: number;
   editadaEn?: number;
