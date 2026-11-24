@@ -42,6 +42,7 @@ import {
   type VisibilidadPublicacion,
 } from "@/data/publicaciones";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
+import { puedeCrearEventos } from "@/services/permisos";
 
 export interface OpcionesInicialesPublicacion {
   tema?: TemaPublicacion;
@@ -563,7 +564,12 @@ export function CrearPublicacionSheet({
   const [visibilidad, setVisibilidad] = useState<VisibilidadPublicacion>(
     publicacion?.visibilidad ?? inicial?.visibilidad ?? "facultad"
   );
-  const [tab, setTab] = useState<TipoAdjunto | null>(adjuntoInicial?.tipo ?? inicial?.tab ?? null);
+  const autorizadoEventos = puedeCrearEventos();
+  const tabsDisponibles = autorizadoEventos ? TABS : TABS.filter((t) => t.id !== "evento");
+  const tabInicial = adjuntoInicial?.tipo ?? inicial?.tab ?? null;
+  const [tab, setTab] = useState<TipoAdjunto | null>(
+    tabInicial === "evento" && !autorizadoEventos ? null : tabInicial
+  );
   const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
 
   const [imagen, setImagen] = useState<File | undefined>(() => (adjuntoInicial?.tipo === "imagen" ? adjuntoInicial.archivo : undefined));
@@ -617,11 +623,12 @@ export function CrearPublicacionSheet({
       case "encuesta":
         return pregunta.trim() !== "" && opcionesLlenas.length >= MIN_OPCIONES_ENCUESTA;
       case "evento":
-        return tituloEvento.trim() !== "" && fechaEvento !== "" && lugarEvento.trim() !== "";
+        return autorizadoEventos && tituloEvento.trim() !== "" && fechaEvento !== "" && lugarEvento.trim() !== "";
     }
   })();
 
-  const puedePublicar = texto.trim().length > 0 && adjuntoValido;
+  const tieneTextoOEvento = texto.trim().length > 0 || (tab === "evento" && tituloEvento.trim().length > 0);
+  const puedePublicar = tieneTextoOEvento && adjuntoValido;
 
   const construirAdjunto = (): AdjuntoPublicacion | undefined => {
     switch (tab) {
@@ -642,7 +649,8 @@ export function CrearPublicacionSheet({
 
   const publicar = () => {
     if (!puedePublicar) return;
-    onSubmit({ texto: texto.trim(), tema, visibilidad, adjunto: construirAdjunto() });
+    const textoFinal = texto.trim() || (tab === "evento" ? tituloEvento.trim() : "");
+    onSubmit({ texto: textoFinal, tema, visibilidad, adjunto: construirAdjunto() });
   };
 
   const insertarHashtag = (tag: string) => {
@@ -760,8 +768,12 @@ export function CrearPublicacionSheet({
               <span className="text-label-lg text-on-surface">Adjuntar contenido</span>
               <span className="text-label-md text-outline font-normal">(opcional)</span>
             </div>
-            <div role="group" aria-label="Tipo de adjunto" className="grid grid-cols-5 gap-2">
-              {TABS.map(({ id, label, icon: Icon }) => {
+            <div
+              role="group"
+              aria-label="Tipo de adjunto"
+              className={`grid gap-2 ${tabsDisponibles.length === 5 ? "grid-cols-5" : "grid-cols-4"}`}
+            >
+              {tabsDisponibles.map(({ id, label, icon: Icon }) => {
                 const activo = tab === id;
                 return (
                   <button

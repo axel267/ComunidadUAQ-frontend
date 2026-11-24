@@ -43,6 +43,7 @@ export const FACULTADES_FILTRO: { id: FacultadClave; label: string }[] = [
 ];
 
 export const PUNTOS_POR_APORTE_SOLIDARIO = 15;
+export const PUNTOS_POR_ASISTENCIA_EVENTO = 100;
 
 export interface Nivel {
   numero: number;

@@ -1,20 +1,33 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
-import { Building2, Maximize2, Nfc, X } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Building2, Copy, Maximize2, Nfc, QrCode, X } from "lucide-react";
+import { useAppToast } from "@/context/ToastContext";
 import type { PerfilEstudiante } from "@/data/perfil";
+import { getStoredSession } from "@/services/auth";
+import { puedeCrearEventos } from "@/services/permisos";
+import { CodigoQrReal } from "./asistencia/CodigoQrReal";
+import { PaseListaQrModal } from "./asistencia/PaseListaQrModal";
 
-// Trazado decorativo tomado del diseño de Stitch. NO es un código QR real ni se puede escanear.
-// TODO: reemplazar por un QR generado a partir de un token firmado y rotativo que emita el backend.
-function QrDecorativo({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24" role="img" aria-label="Código de acceso a torniquetes">
-      <path d="M2 2h7v7H2V2zm2 2v3h3V4H4zm5-2h6v2H9V2zm0 3h2v2H9V5zm4 0h2v2h-2V5zm-4 4h3v2H9V9zm6-7h7v7h-7V2zm2 2v3h3V4h-3zM2 15h7v7H2v-7zm2 2v3h3v-3H4zm6-2h2v3h-2v-3zm0 4h3v3H9v-3zm4-4h2v2h-2v-2zm3 0h3v2h-3v-2zm-3 3h2v2h-2v-2zm3 0h3v4h-2v-2h-1v-2zm-3 3h2v2h-2v-2zM15 9h2v2h-2V9zm4 0h3v2h-3V9zm-2 2h2v2h-2v-2z" />
-    </svg>
-  );
+function construirPayloadQr(perfil: PerfilEstudiante, userId?: number): string {
+  const exp = perfil.expediente || "000000";
+  const nombre = (perfil.nombreCredencial || perfil.nombre || "UAQ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .slice(0, 32);
+  return `UAQ-QR|EXP:${exp}|ID:${userId ?? 0}|NOM:${nombre}`;
 }
 
-function CredencialPantallaCompleta({ perfil, onClose }: { perfil: PerfilEstudiante; onClose: () => void }) {
+function CredencialPantallaCompleta({
+  perfil,
+  payloadQr,
+  onClose,
+}: {
+  perfil: PerfilEstudiante;
+  payloadQr: string;
+  onClose: () => void;
+}) {
+  const showToast = useAppToast();
   const tituloId = useId();
   const cerrarRef = useRef<HTMLButtonElement>(null);
 
@@ -32,20 +45,29 @@ function CredencialPantallaCompleta({ perfil, onClose }: { perfil: PerfilEstudia
     };
   }, [onClose]);
 
+  const copiarCodigo = async () => {
+    try {
+      await navigator.clipboard.writeText(payloadQr);
+      showToast("Codigo QR copiado para pase de lista", { tipo: "exito", detalle: payloadQr });
+    } catch {
+      showToast("No se pudo copiar el codigo", { tipo: "error" });
+    }
+  };
+
   return (
     <div
       data-sheet-open
       role="dialog"
       aria-modal="true"
       aria-labelledby={tituloId}
-      className="sheet-backdrop fixed inset-0 z-[60] flex flex-col items-center justify-center gap-space-xl p-space-xl bg-gradient-to-br from-primary via-primary-container to-tertiary text-on-primary"
+      className="sheet-backdrop fixed inset-0 z-[60] flex flex-col items-center justify-center gap-space-lg p-space-xl bg-gradient-to-br from-primary via-primary-container to-tertiary text-on-primary"
     >
       <button
         ref={cerrarRef}
         type="button"
         aria-label="Cerrar credencial"
         onClick={onClose}
-        className="absolute top-4 right-4 w-touch-target-min h-touch-target-min rounded-full bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center hover:bg-surface-container-lowest/30 active:scale-95 transition-all"
+        className="absolute top-4 right-4 w-touch-target-min h-touch-target-min rounded-full bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center hover:bg-surface-container-lowest/30 active:scale-95 transition-all cursor-pointer"
       >
         <X className="w-6 h-6" />
       </button>
@@ -57,9 +79,23 @@ function CredencialPantallaCompleta({ perfil, onClose }: { perfil: PerfilEstudia
         </h2>
       </div>
 
-      <div className="bg-surface-container-lowest text-on-surface p-space-md rounded-3xl shadow-2xl">
-        <QrDecorativo className="w-64 h-64 max-w-[70vw] max-h-[70vw] p-2" />
-        <p className="text-center text-label-sm font-mono tracking-tight text-secondary mt-1">TORNIQUETES</p>
+      <div className="bg-surface-container-lowest text-on-surface p-space-md rounded-3xl shadow-2xl flex flex-col items-center">
+        <CodigoQrReal
+          valor={payloadQr}
+          className="w-64 h-64 max-w-[70vw] max-h-[70vw]"
+          etiquetaAria={`Codigo QR de asistencia para ${perfil.nombreCredencial}`}
+        />
+        <p className="text-center text-label-sm font-mono tracking-tight text-secondary mt-1.5">
+          PASE DE LISTA · EXP-{perfil.expediente}
+        </p>
+        <button
+          type="button"
+          onClick={copiarCodigo}
+          className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant hover:text-primary text-label-sm cursor-pointer"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          <span>Copiar codigo QR</span>
+        </button>
       </div>
 
       <div className="text-center space-y-1">
@@ -81,6 +117,14 @@ interface CredencialDigitalProps {
 }
 
 export function CredencialDigital({ perfil, completa, onAbrir, onCerrar }: CredencialDigitalProps) {
+  const [paseListaAbierto, setPaseListaAbierto] = useState(false);
+  const session = getStoredSession();
+  const esCoordinadorODocente = puedeCrearEventos(session?.user);
+  const payloadQr = useMemo(
+    () => construirPayloadQr(perfil, session?.user?.id),
+    [perfil, session?.user?.id]
+  );
+
   return (
     <>
       <section
@@ -124,27 +168,47 @@ export function CredencialDigital({ perfil, completa, onAbrir, onCerrar }: Crede
               </span>
             </div>
           </div>
-          <div className="shrink-0 bg-surface-container-lowest text-on-surface p-2 rounded-xl shadow-lg flex flex-col items-center">
-            <div className="w-16 h-16 bg-surface-container rounded-lg overflow-hidden">
-              <QrDecorativo className="w-full h-full p-1" />
-            </div>
-            <span className="text-label-sm text-secondary font-mono tracking-tighter mt-1">TORNIQUETES</span>
-          </div>
-        </div>
-
-        <div className="relative z-10 pt-space-xs">
           <button
             type="button"
             onClick={onAbrir}
-            className="h-9 px-space-md rounded-full bg-surface-container-lowest text-primary text-label-md flex items-center justify-center gap-space-xxs shadow-md hover:bg-surface-bright transition-all active:scale-95"
+            aria-label="Ampliar codigo QR de asistencia"
+            className="shrink-0 bg-surface-container-lowest text-on-surface p-2 rounded-xl shadow-lg flex flex-col items-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-white rounded-lg overflow-hidden">
+              <CodigoQrReal valor={payloadQr} className="w-full h-full" />
+            </div>
+            <span className="text-label-sm text-secondary font-mono tracking-tighter mt-1">ASISTENCIA</span>
+          </button>
+        </div>
+
+        <div className="relative z-10 pt-space-xs flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onAbrir}
+            className="h-9 px-space-md rounded-full bg-surface-container-lowest text-primary text-label-md flex items-center justify-center gap-space-xxs shadow-md hover:bg-surface-bright transition-all active:scale-95 cursor-pointer"
           >
             <Maximize2 className="w-[18px] h-[18px]" />
             Ver Pantalla Completa
           </button>
+
+          {esCoordinadorODocente && (
+            <button
+              type="button"
+              onClick={() => setPaseListaAbierto(true)}
+              className="h-9 px-space-md rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-label-md flex items-center justify-center gap-space-xxs shadow-md hover:opacity-95 transition-all active:scale-95 cursor-pointer"
+            >
+              <QrCode className="w-[18px] h-[18px]" />
+              Escanear QR / Pasar lista
+            </button>
+          )}
         </div>
       </section>
 
-      {completa && <CredencialPantallaCompleta perfil={perfil} onClose={onCerrar} />}
+      {completa && (
+        <CredencialPantallaCompleta perfil={perfil} payloadQr={payloadQr} onClose={onCerrar} />
+      )}
+
+      {paseListaAbierto && <PaseListaQrModal onClose={() => setPaseListaAbierto(false)} />}
     </>
   );
 }

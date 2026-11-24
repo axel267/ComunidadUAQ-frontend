@@ -129,13 +129,25 @@ export function usePublicaciones(autor: AutorPublicacion = AUTOR_MOCK) {
             }
           : undefined;
 
+      const eventoRemoto =
+        datos.adjunto?.tipo === "evento"
+          ? {
+              titulo: datos.adjunto.titulo,
+              fechaHora: datos.adjunto.fechaHora,
+              lugar: datos.adjunto.lugar,
+            }
+          : undefined;
+
+      const textoFinal = datos.texto.trim() || eventoRemoto?.titulo || "Publicacion";
+
       createPublicacion({
-        titulo: datos.texto.slice(0, 100),
-        contenido: datos.texto,
+        titulo: textoFinal.slice(0, 100),
+        contenido: textoFinal,
         categoria: datos.tema || "comunidad",
         imagenesUrl: imgUrlRemota,
         autorId: userId,
         encuesta: encuestaRemota,
+        evento: eventoRemoto,
       })
         .then((creada) =>
           aplicar((prev) => prev.map((p) => (p.id === tempId ? { ...p, id: String(creada.id) } : p)))

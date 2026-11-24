@@ -56,12 +56,18 @@ export interface DatosEncuestaPublicacion {
   votosUsuarios?: Record<string, number>;
 }
 
+export interface DatosEventoPublicacion {
+  titulo: string;
+  fechaHora: string;
+  lugar: string;
+}
+
 export type AdjuntoPublicacion =
   | { tipo: "imagen"; archivo: File }
   | { tipo: "video"; archivo?: File; enlace?: string }
   | { tipo: "documento"; archivo: File }
   | ({ tipo: "encuesta" } & DatosEncuestaPublicacion)
-  | { tipo: "evento"; titulo: string; fechaHora: string; lugar: string };
+  | ({ tipo: "evento" } & DatosEventoPublicacion);
 
 // Contrato que recibe el padre al publicar; el backend (RF04) aún no está definido.
 export interface NuevaPublicacion {
