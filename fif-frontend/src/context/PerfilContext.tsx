@@ -10,7 +10,16 @@ import {
   type CampusPerfil,
 } from "@/data/perfil";
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
-import { getStoredSession, cambiarContrasenaApi, updateProfileApi, getUserApi, type AuthUser } from "@/services/auth";
+import {
+  AuthApiError,
+  getStoredSession,
+  persistSession,
+  cambiarContrasenaApi,
+  updateProfileApi,
+  getUserApi,
+  type AuthUser,
+} from "@/services/auth";
+import { useAuth } from "@/context/AuthContext";
 /** Solo campos editables por el alumno; correo institucional y expediente están bloqueados por Control Escolar. */
 export type CambiosPerfilEditables = Partial<
   Pick<PerfilEstudiante, "nombre" | "carrera" | "semestre" | "campus" | "biografia" | "telefono" | "intereses">
@@ -60,86 +69,113 @@ interface PerfilContextValue {
 const PerfilContext = createContext<PerfilContextValue | null>(null);
 
 export function PerfilProvider({ children }: { children: ReactNode }) {
-  const [perfil, setPerfil] = useState<PerfilEstudiante>(PERFIL_MOCK);
+  const { session, cerrarSesion } = useAuth();
+  const [perfilOverride, setPerfilOverride] = useState<{
+    userId: number;
+    data: PerfilEstudiante;
+  } | null>(null);
   const [ajustes, setAjustes] = useState<AjustesCuenta>(AJUSTES_INICIALES);
 
-  const actualizarPerfil = useCallback(async (cambios: CambiosPerfilEditables) => {
-    setPerfil((actual) => {
-      const nombreLimpio = cambios.nombre !== undefined ? cambios.nombre.trim() : actual.nombre;
-      const nombreFinal = nombreLimpio || actual.nombre;
-      return {
-        ...actual,
+  const perfil = useMemo<PerfilEstudiante>(() => {
+    if (!session?.user) return PERFIL_MOCK;
+    if (perfilOverride && perfilOverride.userId === session.user.id) {
+      return perfilOverride.data;
+    }
+    return mapUserToPerfil(session.user, PERFIL_MOCK);
+  }, [session, perfilOverride]);
+
+  const actualizarPerfil = useCallback(
+    async (cambios: CambiosPerfilEditables) => {
+      const currentSession = getStoredSession();
+      const basePerfil = currentSession?.user
+        ? mapUserToPerfil(currentSession.user, perfil)
+        : perfil;
+
+      const nombreLimpio = cambios.nombre !== undefined ? cambios.nombre.trim() : basePerfil.nombre;
+      const nombreFinal = nombreLimpio || basePerfil.nombre;
+      const optimista: PerfilEstudiante = {
+        ...basePerfil,
         nombre: nombreFinal,
         nombreCredencial: nombreFinal,
         siglas: calcularSiglas(nombreFinal),
-        carrera: cambios.carrera !== undefined ? cambios.carrera.trim() || "No definido" : actual.carrera,
-        semestre: cambios.semestre !== undefined ? cambios.semestre.trim() || "No definido" : actual.semestre,
-        campus: cambios.campus ?? actual.campus,
+        carrera: cambios.carrera !== undefined ? cambios.carrera.trim() || "No definido" : basePerfil.carrera,
+        semestre: cambios.semestre !== undefined ? cambios.semestre.trim() || "No definido" : basePerfil.semestre,
+        campus: cambios.campus ?? basePerfil.campus,
         biografia:
           cambios.biografia !== undefined
             ? cambios.biografia.trim() || "No definido"
-            : actual.biografia,
+            : basePerfil.biografia,
         telefono:
           cambios.telefono !== undefined
             ? cambios.telefono.trim() || "No definido"
-            : actual.telefono,
-        intereses: cambios.intereses ?? actual.intereses,
+            : basePerfil.telefono,
+        intereses: cambios.intereses ?? basePerfil.intereses,
       };
-    });
 
-    const session = getStoredSession();
-    if (session?.user?.id) {
-      try {
-        const res = await updateProfileApi({
-          userId: session.user.id,
-          nombre: cambios.nombre,
-          carrera: cambios.carrera,
-          semestre: cambios.semestre,
-          campus: cambios.campus,
-          biografia: cambios.biografia,
-          telefono: cambios.telefono,
-          intereses: cambios.intereses,
-        });
+      if (currentSession?.user?.id) {
+        setPerfilOverride({ userId: currentSession.user.id, data: optimista });
+        try {
+          const res = await updateProfileApi({
+            userId: currentSession.user.id,
+            nombre: cambios.nombre,
+            carrera: cambios.carrera,
+            semestre: cambios.semestre,
+            campus: cambios.campus,
+            biografia: cambios.biografia,
+            telefono: cambios.telefono,
+            intereses: cambios.intereses,
+          });
 
-        const updatedUser = {
-          ...session.user,
-          ...res.user,
-        };
-        const updatedSession = {
-          ...session,
-          user: updatedUser,
-        };
-        localStorage.setItem("auth_user", JSON.stringify(updatedUser));
-        localStorage.setItem("fif_session", JSON.stringify(updatedSession));
-
-        setPerfil((prev) => mapUserToPerfil(updatedUser, prev));
-      } catch (err) {
-        console.error("Error al persistir cambios en backend:", err);
-        throw err;
+          const updatedUser = {
+            ...currentSession.user,
+            ...res.user,
+          };
+          const updatedSession = {
+            ...currentSession,
+            user: updatedUser,
+          };
+          persistSession(updatedSession);
+          setPerfilOverride({
+            userId: updatedUser.id,
+            data: mapUserToPerfil(updatedUser, optimista),
+          });
+        } catch (err) {
+          console.error("Error al persistir cambios en backend:", err);
+          throw err;
+        }
       }
-    }
-  }, []);
+    },
+    [perfil]
+  );
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (session?.user) {
-      setPerfil((prev) => mapUserToPerfil(session.user, prev));
+    const sessionUser = session?.user;
+    if (!sessionUser?.id) return;
 
-      if (session.user.id) {
-        getUserApi(session.user.id)
-          .then((freshUser) => {
-            if (freshUser) {
-              const merged = { ...session.user, ...freshUser };
-              localStorage.setItem("auth_user", JSON.stringify(merged));
-              setPerfil((prev) => mapUserToPerfil(merged, prev));
-            }
-          })
-          .catch((err) => {
-            console.error("Error al cargar perfil actualizado:", err);
-          });
-      }
-    }
-  }, []);
+    let cancelled = false;
+    getUserApi(sessionUser.id)
+      .then((freshUser) => {
+        if (cancelled || !freshUser) return;
+        const merged = { ...sessionUser, ...freshUser };
+        localStorage.setItem("auth_user", JSON.stringify(merged));
+        setPerfilOverride({
+          userId: merged.id,
+          data: mapUserToPerfil(merged, PERFIL_MOCK),
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof AuthApiError && err.status === 401) {
+          cerrarSesion();
+          return;
+        }
+        console.error("Error al cargar perfil actualizado:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, cerrarSesion]);
   const actualizarPrivacidad = useCallback((cambios: Partial<AjustesCuenta["privacidad"]>) => {
     setAjustes((actual) => ({
       ...actual,

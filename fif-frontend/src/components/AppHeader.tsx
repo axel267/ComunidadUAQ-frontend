@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Bell, GraduationCap } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useNotificacionesApp } from "@/context/NotificacionesContext";
 import { usePerfil } from "@/context/PerfilContext";
 
@@ -17,11 +18,18 @@ export function AppHeader({ subtitle }: AppHeaderProps) {
     <header className="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="h-16 px-space-md flex items-center justify-between">
         <Link href="/" aria-label="Ir al inicio" className="flex items-center gap-space-xs">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0">
-            <GraduationCap className="w-5 h-5" />
+          <div className="h-10 w-10 rounded-xl bg-white border border-outline-variant/40 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+            <Image
+              src="/logo-uaqnecta.png"
+              alt="UAQnecta"
+              width={40}
+              height={40}
+              priority
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="text-headline-sm text-primary leading-none">Comunidad UAQ</span>
+            <span className="text-headline-sm text-primary leading-none">UAQnecta</span>
             <span className="text-label-sm font-inter text-secondary leading-tight mt-0.5">{subtitle}</span>
           </div>
         </Link>

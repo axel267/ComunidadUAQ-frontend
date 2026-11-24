@@ -1,7 +1,7 @@
 {
-  "name": "Plataforma Integral FIF UAQ",
-  "short_name": "FIF UAQ",
-  "description": "Plataforma Integral de Difusión y Gestión Informativa",
+  "name": "UAQnecta Comunidad",
+  "short_name": "UAQnecta",
+  "description": "Plataforma Integral de Difusión y Gestión Informativa UAQ",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

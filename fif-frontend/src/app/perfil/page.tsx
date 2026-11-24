@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -34,8 +34,8 @@ import { useNotificacionesApp } from "@/context/NotificacionesContext";
 import { usePerfil } from "@/context/PerfilContext";
 import { usePublicacionesApp } from "@/context/PublicacionesContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
+import { useAuth } from "@/context/AuthContext";
 import { AVISOS_MOCK } from "@/data/avisos";
-import { getStoredSession, logout } from "@/services/auth";
 import {
   CUENTA_SEGURIDAD,
   EVENTOS_REGISTRADOS_MOCK,
@@ -89,12 +89,7 @@ export default function PerfilPage() {
   const [credencialCompleta, setCredencialCompleta] = useState(false);
 
   const { perfil, ajustes } = usePerfil();
-  const [estaAutenticado, setEstaAutenticado] = useState(false);
-
-  useEffect(() => {
-    const session = getStoredSession();
-    setEstaAutenticado(Boolean(session?.accessToken && session?.user));
-  }, []);
+  const { isAuthenticated: estaAutenticado, cerrarSesion: cerrarSesionAuth } = useAuth();
 
   const avisosGuardados = AVISOS_MOCK.filter((a) => guardados.has(a.id));
   const comunidadGuardados = postsComunidad.filter((p) => guardados.has(p.id));
@@ -120,10 +115,8 @@ export default function PerfilPage() {
   };
 
   const cerrarSesion = () => {
-    logout();
-    setEstaAutenticado(false);
     showToast("Sesión cerrada correctamente", { tipo: "info" });
-    window.location.href = "/login";
+    cerrarSesionAuth();
   };
 
   const pestanas: { id: Pestana; label: string; icono: LucideIcon; total: number }[] = [

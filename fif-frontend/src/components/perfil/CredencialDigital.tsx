@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { Building2, Copy, Maximize2, Nfc, QrCode, X } from "lucide-react";
 import { useAppToast } from "@/context/ToastContext";
 import type { PerfilEstudiante } from "@/data/perfil";
@@ -138,11 +139,11 @@ export function CredencialDigital({ perfil, completa, onAbrir, onCerrar }: Crede
 
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-space-xs">
-            <div className="w-8 h-8 rounded-lg bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-              <Building2 className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-inner overflow-hidden">
+              <Image src="/logo-uaqnecta.png" alt="UAQnecta" width={36} height={36} className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
-              <span className="text-label-sm uppercase tracking-widest text-primary-fixed">Comunidad UAQ</span>
+              <span className="text-label-sm uppercase tracking-widest text-primary-fixed">UAQnecta</span>
               <span className="text-headline-sm tracking-tight">Credencial Universitaria</span>
             </div>
           </div>

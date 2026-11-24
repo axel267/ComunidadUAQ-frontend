@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { activateAccount } from "@/services/auth";
@@ -107,8 +108,15 @@ export default function ActivarCuentaPage() {
           </div>
 
           <div className="relative mt-1 mb-4 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-blue-600 to-blue-700 flex items-center justify-center text-white shadow-[0_10px_25px_-3px_rgba(37,99,235,0.35)] border border-blue-400/20">
-              <ShieldCheckIcon className="w-8 h-8" />
+            <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-[0_10px_25px_-3px_rgba(37,99,235,0.18)] border border-slate-200/80 overflow-hidden">
+              <Image
+                src="/logo-uaqnecta.png"
+                alt="UAQnecta Comunidad"
+                width={80}
+                height={80}
+                priority
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
@@ -142,7 +150,7 @@ export default function ActivarCuentaPage() {
                   required
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej. Alan Xotla"
+                  placeholder="Ej. Juan Pérez"
                   className="block w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/10 transition-colors"
                 />
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
@@ -56,8 +57,15 @@ export default function LoginPage() {
 
       <main className="flex-1 flex flex-col items-center justify-between w-full max-w-md mx-auto px-5 pt-10 pb-8 min-h-screen">
         <header className="w-full flex flex-col items-center text-center pt-6 pb-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 flex items-center justify-center mb-5 text-white ring-4 ring-white">
-            <span className="text-3xl font-black">U</span>
+          <div className="w-24 h-24 rounded-2xl bg-white shadow-lg shadow-blue-900/10 flex items-center justify-center mb-5 ring-4 ring-white overflow-hidden">
+            <Image
+              src="/logo-uaqnecta.png"
+              alt="UAQnecta Comunidad"
+              width={96}
+              height={96}
+              priority
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Iniciar Sesión</h1>
           <p className="text-sm text-slate-500 mt-1 max-w-[280px] leading-relaxed">

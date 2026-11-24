@@ -37,16 +37,54 @@ export interface AuthSession {
   user: AuthUser;
 }
 
+export const AUTH_CHANGE_EVENT = 'uaqnecta-auth-change';
+
+function notifyAuthChange(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+}
+
+export class AuthApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'AuthApiError';
+    this.status = status;
+  }
+}
+
+export function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const payload = JSON.parse(atob(padded)) as { exp?: number };
+    if (typeof payload.exp !== 'number') return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return false;
+  }
+}
+
 async function parseJsonResponse<T>(res: Response, fallbackError: string): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const message = Array.isArray(body?.message)
       ? body.message.join(', ')
       : body?.message || fallbackError;
-    throw new Error(message);
+    throw new AuthApiError(message, res.status);
   }
   return res.json();
 }
+
+export const persistSession = (session: AuthSession): void => {
+  if (typeof window === 'undefined' || !session.accessToken || !session.user) return;
+  localStorage.setItem('auth_token', session.accessToken);
+  localStorage.setItem('auth_user', JSON.stringify(session.user));
+  notifyAuthChange();
+};
 
 export const login = async (credentials: {
   email: string;
@@ -64,9 +102,8 @@ export const login = async (credentials: {
 
   const session = await parseJsonResponse<AuthSession>(res, 'Credenciales inválidas o cuenta no activa.');
 
-  if (typeof window !== 'undefined' && session.accessToken) {
-    localStorage.setItem('auth_token', session.accessToken);
-    localStorage.setItem('auth_user', JSON.stringify(session.user));
+  if (session.accessToken && session.user) {
+    persistSession(session);
   }
 
   return session;
@@ -77,10 +114,16 @@ export const getStoredSession = (): AuthSession | null => {
   const token = localStorage.getItem('auth_token');
   const userJson = localStorage.getItem('auth_user');
   if (!token || !userJson) return null;
+  if (isTokenExpired(token)) {
+    logout();
+    return null;
+  }
   try {
+    const user = JSON.parse(userJson) as AuthUser;
+    if (!user || typeof user !== 'object') return null;
     return {
       accessToken: token,
-      user: JSON.parse(userJson),
+      user,
     };
   } catch {
     return null;
@@ -89,13 +132,21 @@ export const getStoredSession = (): AuthSession | null => {
 
 export const getAccessToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+  const token = localStorage.getItem('auth_token');
+  if (!token) return null;
+  if (isTokenExpired(token)) {
+    logout();
+    return null;
+  }
+  return token;
 };
 
 export const logout = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_user');
+  localStorage.removeItem('fif_session');
+  notifyAuthChange();
 };
 
 export interface ActivateAccountPayload {

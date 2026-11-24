@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { AlertTriangle, Megaphone, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { useAppToast } from "@/context/ToastContext";
+import { useAuth } from "@/context/AuthContext";
 import { HeroAnnouncement } from "@/components/home/HeroAnnouncement";
 import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { AvisoCard } from "@/components/home/AvisoCard";
@@ -25,30 +25,18 @@ import {
   getFacultades,
   type Facultade,
 } from "@/services/api";
-import { getStoredSession } from "@/services/auth";
 import type { Aviso, CategoriaAviso } from "@/data/avisos";
 
-const subscribeToSession = (callback: () => void) => {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
-};
-
-const getSessionSnapshot = () => {
-  const session = getStoredSession();
-  return session ? JSON.stringify([session.user.rol, session.user.rolId, session.user.id]) : null;
-};
-
 export default function HomePage() {
-  const router = useRouter();
   const showToast = useAppToast();
+  const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const { publicaciones } = usePublicacionesApp();
   const { abrirCrear, abrirOpciones, hojas } = useGestionPublicacion();
   const [categoria, setCategoria] = useState<"all" | CategoriaAviso>("all");
-  const sessionSnapshot = useSyncExternalStore(subscribeToSession, getSessionSnapshot, () => null);
-  const sesionVerificada = sessionSnapshot !== null;
-  const [rolSesion, rolIdSesion, usuarioId] = sessionSnapshot
-    ? (JSON.parse(sessionSnapshot) as [string, number | undefined, number | undefined])
-    : [undefined, undefined, undefined];
+  const sesionVerificada = !isLoadingAuth && isAuthenticated;
+  const rolSesion = user?.rol;
+  const rolIdSesion = user?.rolId;
+  const usuarioId = user?.id;
   const esAdmin = rolSesion === "Administrador" || rolIdSesion === 1;
   const esCoordinador = rolIdSesion === 4 || Boolean(rolSesion?.startsWith("Coordinaci"));
 
@@ -81,14 +69,11 @@ export default function HomePage() {
   }, [showToast]);
 
   useEffect(() => {
-    if (!sesionVerificada) {
-      router.replace("/login");
-      return;
-    }
+    if (!sesionVerificada) return;
 
     cargarAvisos();
     getFacultades().then((f) => setFacultades(f)).catch(() => []);
-  }, [cargarAvisos, router, sesionVerificada]);
+  }, [cargarAvisos, sesionVerificada]);
 
   const avisosFiltrados = useMemo(
     () => (categoria === "all" ? avisos : avisos.filter((a) => a.categoria === categoria)),

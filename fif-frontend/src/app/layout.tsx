@@ -17,8 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Comunidad UAQ",
-  description: "Plataforma universitaria Comunidad UAQ",
+  title: "UAQnecta | Comunidad UAQ",
+  description: "Plataforma universitaria UAQnecta Comunidad",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

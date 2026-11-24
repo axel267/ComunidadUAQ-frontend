@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
@@ -27,6 +26,7 @@ import {
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { CambiarContrasenaSheet } from "@/components/perfil/CambiarContrasenaSheet";
 import { usePerfil } from "@/context/PerfilContext";
+import { useAuth } from "@/context/AuthContext";
 import { useAppToast } from "@/context/ToastContext";
 import { useGestionPublicacion } from "@/hooks/useGestionPublicacion";
 import {
@@ -127,8 +127,8 @@ function CampoBloqueado({
 }
 
 export default function AjustesPerfilPage() {
-  const router = useRouter();
   const showToast = useAppToast();
+  const { cerrarSesion: cerrarSesionAuth } = useAuth();
   const {
     perfil,
     ajustes,
@@ -226,8 +226,8 @@ export default function AjustesPerfilPage() {
   };
 
   const cerrarSesion = () => {
-    // TODO: invalidar la sesión en el backend y limpiar el token cuando auth.ts la persista.
-    router.push("/login");
+    showToast("Sesión cerrada correctamente", { tipo: "info" });
+    cerrarSesionAuth();
   };
 
   const otrasSesiones = ajustes.seguridad.sesiones.filter((s) => !s.actual).length;
