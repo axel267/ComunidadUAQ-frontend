@@ -198,12 +198,4 @@ export interface EventoRegistrado {
   organiza: string;
 }
 
-// Eventos a los que el usuario ya se registró (mock hasta que exista el módulo de eventos).
-export const EVENTOS_REGISTRADOS_MOCK: EventoRegistrado[] = [
-  {
-    id: "hackathon-ciber-2025",
-    titulo: "Hackathon de Ciberseguridad Interuniversitario 2025",
-    detalle: "Fecha límite de inscripción de equipos: 14 de mayo. Auditorio Telmex de Ingeniería.",
-    organiza: "Depto. de Ciencias Computacionales",
-  },
-];
+export const EVENTOS_REGISTRADOS_MOCK: EventoRegistrado[] = [];

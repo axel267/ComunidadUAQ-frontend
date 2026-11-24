@@ -11,7 +11,7 @@ import {
   type ResumenPuntos,
 } from "@/data/recompensas";
 import { getAsistenciasLista, type AsistenciaRegistroBackend } from "@/services/api";
-import { getStoredSession } from "@/services/auth";
+import { AUTH_CHANGE_EVENT, getStoredSession } from "@/services/auth";
 
 export type ResultadoAcreditacion =
   | { ok: true; insignia: Insignia; folio: string }
@@ -88,8 +88,19 @@ export function RecompensasProvider({ children }: { children: ReactNode }) {
     const onUpdate = () => {
       recargarAsistencias();
     };
+    const onAuthChange = () => {
+      setInsigniasBase(INSIGNIAS_INICIALES);
+      setPuntosManuales(0);
+      recargarAsistencias();
+    };
     window.addEventListener("uaq:asistencia-actualizada", onUpdate);
-    return () => window.removeEventListener("uaq:asistencia-actualizada", onUpdate);
+    window.addEventListener(AUTH_CHANGE_EVENT, onAuthChange);
+    window.addEventListener("storage", onAuthChange);
+    return () => {
+      window.removeEventListener("uaq:asistencia-actualizada", onUpdate);
+      window.removeEventListener(AUTH_CHANGE_EVENT, onAuthChange);
+      window.removeEventListener("storage", onAuthChange);
+    };
   }, [recargarAsistencias]);
 
   const acreditar = useCallback(
